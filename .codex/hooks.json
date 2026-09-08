@@ -1,0 +1,17 @@
+{
+  "description": "arqfor_v1.0: estrutura inerte; habilitar somente após revisão humana. Política conservadora bloqueia todo shell.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^ARQFOR_HOOK_DESABILITADO$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"/home/josemberg/Documentos/MESTRADO/DEV-ia/proarqfor-imd/.codex/hooks/bloquear-exclusao-fast.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
