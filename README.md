@@ -17,7 +17,7 @@ Cada evidência representa um único arquivo `.dd`. O MVP verificará SHA-256 no
 | storage/cold/archive | Arquivo final .zip.enc |
 | data/arqfor.db | Metadados SQLite, separados da aplicação |
 
-Esses diretórios e arquivos não foram criados nesta etapa e não devem ser versionados.
+Por orientação posterior do usuário, os arquivos de dados do projeto podem ser compartilhados pelo Git com o colega. As regras de exclusão de storages, bancos e artefatos foram removidas do `.gitignore` e não devem ser restauradas automaticamente. Essa exceção de versionamento não autoriza exclusões de arquivos nem altera os checkpoints de implementação.
 
 ## Comportamento planejado
 

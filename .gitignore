@@ -6,18 +6,4 @@
 .vscode/
 *.iml
 .DS_Store
-# Dados locais e evidências: nunca versionar
-/storage/
-/data/
-*.db
-*.db-*
-*.sqlite
-*.sqlite-*
-*.sqlite3
-*.sqlite3-*
-*.dd
-*.zip
-*.enc
-.env
-.env.*
-!.env.example
+
