@@ -71,3 +71,13 @@ A fundação existente usa Spring Boot 4.0.8, divergindo de 3.x no plano; pom.xm
 Por solicitação explícita do usuário, pom.xml foi ajustado de Spring Boot 4.0.8 para 3.5.16, mantendo Java 21. Os starters webmvc e os três starters de teste específicos do Boot 4 foram substituídos por spring-boot-starter-web e spring-boot-starter-test, compatíveis com a linha 3 e JUnit 5. Demais dependências existentes continuam gerenciadas pelo parent. A divergência de versão mencionada no registro anterior está resolvida.
 
 HomeControllerTest agora usa @WebMvcTest e verifica HTTP 200, view index e os três textos do HTML renderizado por Thymeleaf. `./mvnw test` em src/web: BUILD SUCCESS, 2 testes, 0 falhas, 0 erros, 0 ignorados; o teste de contexto existente também passou. Nenhuma funcionalidade futura foi implementada e nenhum commit, push ou merge foi realizado.
+
+## Modelo de evidência e persistência — escopo solicitado como “tarefa 4”
+
+Implementados Evidence, EvidenceStatus e EvidenceRepository, com os campos id, evidenceIdentifier, currentPath, informedHash, calculatedHash, status, archivedPath, encryptionIv, errorMessage e createdAt. Estados persistidos como texto; criação com EM_ANALISE ou HASH_DIVERGENTE; demais alterações passam por transitionTo, sem setter público de status. A entidade recebe os hashes e o estado inicial do chamador: cálculo e comparação de hash não foram implementados nesta etapa.
+
+Mantida a configuração SQLite existente em forenstorage.db. schema.sql cria o índice único do identificador após inicialização JPA; a atualização automática de constraints únicas pelo Hibernate foi desativada porque SQLite não suporta o ALTER TABLE emitido. O teste de duplicidade verifica a causa SQLITE_CONSTRAINT_UNIQUE, encapsulada pelo dialeto em uma exceção Spring de acesso a dados.
+
+Validação: ./mvnw test na raiz terminou com BUILD SUCCESS: 54 testes, 0 falhas, 0 erros, 0 ignorados. Cobertura: 36 pares de transição, destinos nulos, estados bloqueados, estados iniciais inválidos, mensagem de erro, persistência e releitura, nova conexão física SQLite, metadados opcionais, data preservada na atualização e unicidade. Testes de persistência usam diretório temporário; o teste de contexto usa SQLite em memória para não alterar o banco local.
+
+A numeração desta solicitação não corresponde à seção 4 acima (checkpoint de exclusão); esse checkpoint continua pendente. Os itens amplos 2.3 e 3.2 permanecem pendentes: ainda não há separação no caminho data/arqfor.db, teste de reinício da aplicação nem camada de serviço. Senha/chave/salt e outros metadados futuros do ADR-0003 não foram adicionados além dos campos expressamente solicitados. Não houve cadastro web, cálculo de hash, movimentação, ZIP, criptografia, Docker, commit, push ou merge.
