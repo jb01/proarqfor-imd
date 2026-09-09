@@ -81,3 +81,11 @@ Mantida a configuração SQLite existente em forenstorage.db. schema.sql cria o 
 Validação: ./mvnw test na raiz terminou com BUILD SUCCESS: 54 testes, 0 falhas, 0 erros, 0 ignorados. Cobertura: 36 pares de transição, destinos nulos, estados bloqueados, estados iniciais inválidos, mensagem de erro, persistência e releitura, nova conexão física SQLite, metadados opcionais, data preservada na atualização e unicidade. Testes de persistência usam diretório temporário; o teste de contexto usa SQLite em memória para não alterar o banco local.
 
 A numeração desta solicitação não corresponde à seção 4 acima (checkpoint de exclusão); esse checkpoint continua pendente. Os itens amplos 2.3 e 3.2 permanecem pendentes: ainda não há separação no caminho data/arqfor.db, teste de reinício da aplicação nem camada de serviço. Senha/chave/salt e outros metadados futuros do ADR-0003 não foram adicionados além dos campos expressamente solicitados. Não houve cadastro web, cálculo de hash, movimentação, ZIP, criptografia, Docker, commit, push ou merge.
+
+## HashService SHA-256 por streaming — 2026-09-08
+
+Implementado somente HashService.calculateSha256(Path): leitura por InputStream com buffer fixo de 8192 bytes, fechamento automático do stream e retorno hexadecimal em minúsculas. Arquivo inexistente produz IOException com mensagem “Arquivo não encontrado: <path>” e preserva a causa NoSuchFileException. Outros erros de leitura são propagados, sem retornar hash parcial.
+
+Validação: ./mvnw -Dtest=HashServiceTest test — BUILD SUCCESS, 4 testes, 0 falhas, 0 erros, 0 ignorados. Vetores conhecidos: abc, arquivo vazio e um milhão de caracteres a (múltiplos buffers); também testada mensagem para arquivo inexistente. Arquivos sintéticos em diretórios temporários; nenhum arquivo de storage foi alterado. A suíte completa não foi reexecutada nesta etapa.
+
+O item 3.1 permanece pendente porque inclui cadastro e validações além deste serviço isolado. Não houve integração com cadastro, comparação de hashes, alteração de status ou implementação de tarefas posteriores.
