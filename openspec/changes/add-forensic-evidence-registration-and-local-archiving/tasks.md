@@ -15,7 +15,7 @@
 
 ## 3. Cadastro, telas e estados
 
-- [ ] 3.1 Implementar cadastro de .dd, validação de identificador/path/hash e SHA-256 por streaming; verificar JUnit 5 para hash igual/divergente, caixa hexadecimal, duplicidade, symlink/escape e leitura falha.
+- [x] 3.1 Implementar cadastro de .dd, validação de identificador/path/hash e SHA-256 por streaming; verificar JUnit 5 para hash igual/divergente, caixa hexadecimal, duplicidade, symlink/escape e leitura falha.
 - [ ] 3.2 Implementar estados e transições permitidas no serviço; verificar todos os pares permitidos e proibidos, incluindo bloqueio total de HASH_DIVERGENTE/ERRO.
 - [ ] 3.3 Implementar listagem, Adicionar, cadastro/Cancelar/Cadastrar e detalhes com todos os campos; verificar navegação MVC e erros de formulário, usando apenas ferramentas já aprovadas.
 - [ ] 3.4 Implementar remoção somente de registro com confirmação e cancelamento; verificar registro removido, arquivo preservado e bloqueio durante operação em curso.
@@ -89,3 +89,15 @@ Implementado somente HashService.calculateSha256(Path): leitura por InputStream 
 Validação: ./mvnw -Dtest=HashServiceTest test — BUILD SUCCESS, 4 testes, 0 falhas, 0 erros, 0 ignorados. Vetores conhecidos: abc, arquivo vazio e um milhão de caracteres a (múltiplos buffers); também testada mensagem para arquivo inexistente. Arquivos sintéticos em diretórios temporários; nenhum arquivo de storage foi alterado. A suíte completa não foi reexecutada nesta etapa.
 
 O item 3.1 permanece pendente porque inclui cadastro e validações além deste serviço isolado. Não houve integração com cadastro, comparação de hashes, alteração de status ou implementação de tarefas posteriores.
+
+## Caso de uso de cadastro — 2026-09-08
+
+Implementado EvidenceRegistrationService.register(String evidenceIdentifier, Path currentPath, String informedHash). Valida identificador obrigatório, SHA-256 hexadecimal com 64 caracteres e arquivo .dd regular/legível dentro da raiz rápida, rejeitando symlinks e escape de path. A raiz pode ser configurada por forenstorage.storage.fast, com padrão storage/fast. Persiste o path real absoluto e preserva o hash informado; o calculado vem do HashService em minúsculas. Comparação sem distinção de caixa determina EM_ANALISE ou HASH_DIVERGENTE, sem aceitar status fornecido pelo chamador.
+
+Duplicidade é verificada previamente e protegida pelo índice único SQLite; violação desse índice após a consulta inicial recebe mensagem clara de identificador já cadastrado. Demais erros de banco são propagados sem serem classificados como duplicidade. O arquivo é lido antes de iniciar a transação de persistência do repositório; falha na leitura não salva cadastro parcial. Arquivos não são alterados.
+
+HASH_DIVERGENTE permanece bloqueado para todos os destinos, incluindo ARQUIVANDO, pela entidade existente. Não foi implementada ação de arquivamento. Validação de path ocorre antes da leitura, sem garantia contra troca concorrente de arquivos/symlinks por processos externos entre validação e abertura.
+
+./mvnw test: BUILD SUCCESS, 75 testes, 0 falhas, 0 erros, 0 ignorados; 17 testes do caso de uso. Cobertura inclui hash correto (informado em maiúsculas), divergência persistida, bloqueios, duplicidade sem sobrescrita, violação de índice simulada após pré-consulta, falha distinta de banco, hash malformado, identificador vazio/nulo, arquivo inexistente, extensão inválida, diretório, path externo/escape, symlinks e leitura interrompida. SQLite e arquivos sintéticos temporários, sem dados reais.
+
+Item 3.1 concluído para cadastro na camada de serviço. Telas, movimentação, ZIP, AES-GCM e tarefas posteriores não foram implementados. Nenhum commit, push ou merge foi realizado.
