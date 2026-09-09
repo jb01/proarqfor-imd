@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: plano aprovado em 2026-09-08. Não há aplicação implementada.** Nenhum projeto Maven, dependência, Docker Compose ou deploy foi criado. Os três ADRs estão Accepted; o checkpoint inicial foi concluído. Os checkpoints posteriores continuam pendentes.
+**Etapa atual: fundação web mínima na raiz do repositório, com Spring Boot 3.5.16 e Java 21.** GET / renderiza a página ForenStorage. Os três ADRs estão Accepted; as funcionalidades de gestão de evidências e os checkpoints posteriores continuam pendentes.
 
 ## Stack e objetivo
 
@@ -17,7 +17,7 @@ Cada evidência representa um único arquivo `.dd`. O MVP verificará SHA-256 no
 | storage/cold/archive | Arquivo final .zip.enc |
 | data/arqfor.db | Metadados SQLite, separados da aplicação |
 
-Por orientação posterior do usuário, os arquivos de dados do projeto podem ser compartilhados pelo Git com o colega. As regras de exclusão de storages, bancos e artefatos foram removidas do `.gitignore` e não devem ser restauradas automaticamente. Essa exceção de versionamento não autoriza exclusões de arquivos nem altera os checkpoints de implementação.
+Na reorganização para a raiz, o `.gitignore` foi unificado conforme solicitado: preserva regras Maven/IDE e protege SQLite, arquivos `.dd`, `.zip`, `.enc`, storage, chaves e configurações locais. Essas regras não alteram os checkpoints de implementação ou autorizam exclusões de dados.
 
 ## Comportamento planejado
 
@@ -49,7 +49,7 @@ OPENSPEC_TELEMETRY=0 openspec validate add-forensic-evidence-registration-and-lo
 OPENSPEC_TELEMETRY=0 openspec status --change add-forensic-evidence-registration-and-local-archiving
 ```
 
-Artefatos completos no OpenSpec não significam implementação concluída ou aprovada. Não existem instruções de execução da aplicação nesta etapa.
+Artefatos completos no OpenSpec não significam implementação completa do MVP. Execute os comandos Maven a partir da raiz do repositório, usando `./mvnw`: `./mvnw test` para testes e `./mvnw clean package` para gerar o pacote. Última validação em 2026-09-08: 2 testes, nenhuma falha ou erro, incluindo contexto Spring e página inicial renderizada.
 
 ## Checkpoints
 
