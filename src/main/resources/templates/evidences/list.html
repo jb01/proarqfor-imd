@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Evidências — ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/evidences.css}">
+</head>
+<body><main>
+    <h1>Evidências</h1>
+    <nav><a th:href="@{/}">Início</a><a class="button" th:href="@{/evidences/new}">Adicionar evidência</a></nav>
+    <p th:if="${success}" class="success" role="status" th:text="${success}"></p>
+    <p th:if="${warning}" class="alert" role="alert" th:text="${warning}"></p>
+    <p th:if="${#lists.isEmpty(evidences)}">Nenhuma evidência cadastrada.</p>
+    <div class="table-container" th:unless="${#lists.isEmpty(evidences)}">
+        <table>
+            <caption>Evidências cadastradas — selecione o identificador para abrir os detalhes</caption>
+            <thead><tr><th>Identificador</th><th>Status</th><th>Path atual</th></tr></thead>
+            <tbody><tr th:each="evidence : ${evidences}">
+                <td><a th:href="@{/evidences/{id}(id=${evidence.id})}" th:text="${evidence.evidenceIdentifier}"></a></td>
+                <td th:text="${evidence.status}"></td>
+                <td th:text="${evidence.currentPath}"></td>
+            </tr></tbody>
+        </table>
+    </div>
+</main></body>
+</html>

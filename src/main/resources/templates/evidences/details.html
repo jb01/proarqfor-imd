@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detalhes da evidência — ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/evidences.css}">
+</head>
+<body><main>
+    <h1>Detalhes da evidência</h1>
+    <nav><a th:href="@{/evidences}">Voltar à listagem</a></nav>
+    <div th:if="${evidence.status.name() == 'HASH_DIVERGENTE'}" class="alert" role="alert">
+        <strong>HASH_DIVERGENTE: os hashes não coincidem.</strong>
+        <p>Arquivamento e mudanças de status estão bloqueados. Remova a evidência e cadastre novamente.</p>
+    </div>
+    <div th:if="${evidence.status.name() == 'ERRO'}" class="alert" role="alert">
+        <strong>ERRO: arquivamento e mudanças de status estão bloqueados.</strong>
+    </div>
+    <dl>
+        <dt>Identificador</dt><dd th:text="${evidence.evidenceIdentifier}"></dd>
+        <dt>Status</dt><dd th:text="${evidence.status}"></dd>
+        <dt>Path atual</dt><dd th:text="${evidence.currentPath}"></dd>
+        <dt>Hash informado (original)</dt><dd th:text="${evidence.informedHash}"></dd>
+        <dt>Hash calculado (conferido)</dt><dd th:text="${evidence.calculatedHash}"></dd>
+        <dt>Data do cadastro</dt><dd th:text="${evidence.createdAt}"></dd>
+        <dt>Senha da criptografia</dt><dd>Ainda não gerada.</dd>
+        <th:block th:if="${evidence.archivedPath != null and !#strings.isEmpty(evidence.archivedPath)}">
+            <dt>Path arquivado</dt><dd th:text="${evidence.archivedPath}"></dd>
+        </th:block>
+        <th:block th:if="${evidence.errorMessage != null and !#strings.isEmpty(evidence.errorMessage)}">
+            <dt>Mensagem de erro</dt><dd class="alert" role="alert" th:text="${evidence.errorMessage}"></dd>
+        </th:block>
+    </dl>
+    <p id="actions-help">As ações de arquivamento e alteração de status ainda não estão disponíveis nesta versão.</p>
+    <div class="actions">
+        <button id="archive-button" type="button" disabled aria-describedby="actions-help">Arquivar</button>
+        <button id="status-button" type="button" disabled aria-describedby="actions-help">Alterar status</button>
+    </div>
+</main></body>
+</html>

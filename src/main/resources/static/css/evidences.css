@@ -1,0 +1,15 @@
+body { font-family: system-ui, sans-serif; margin: 0; color: #182536; background: #f4f6f8; }
+main { max-width: 1050px; margin: 2rem auto; padding: 2rem; background: white; border-radius: .5rem; }
+a { color: #174e87; }
+nav, .actions { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .8rem; border-bottom: 1px solid #ccd4dd; text-align: left; overflow-wrap: anywhere; }
+label { display: block; margin-top: 1rem; font-weight: 600; }
+input { box-sizing: border-box; width: 100%; padding: .7rem; margin: .4rem 0; }
+button, .button { padding: .7rem 1rem; border-radius: .3rem; }
+button:disabled { cursor: not-allowed; color: #555; background: #eee; }
+.alert { padding: 1rem; border: 2px solid #9c4500; background: #fff0d6; color: #652b00; }
+.success { padding: 1rem; background: #e4f5e8; }
+dt { font-weight: 700; margin-top: 1rem; }
+dd { margin: .4rem 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) { main { margin: 0; padding: 1rem; } .table-container { overflow-x: auto; } }

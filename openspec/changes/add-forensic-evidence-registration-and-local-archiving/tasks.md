@@ -101,3 +101,13 @@ HASH_DIVERGENTE permanece bloqueado para todos os destinos, incluindo ARQUIVANDO
 ./mvnw test: BUILD SUCCESS, 75 testes, 0 falhas, 0 erros, 0 ignorados; 17 testes do caso de uso. Cobertura inclui hash correto (informado em maiúsculas), divergência persistida, bloqueios, duplicidade sem sobrescrita, violação de índice simulada após pré-consulta, falha distinta de banco, hash malformado, identificador vazio/nulo, arquivo inexistente, extensão inválida, diretório, path externo/escape, symlinks e leitura interrompida. SQLite e arquivos sintéticos temporários, sem dados reais.
 
 Item 3.1 concluído para cadastro na camada de serviço. Telas, movimentação, ZIP, AES-GCM e tarefas posteriores não foram implementados. Nenhum commit, push ou merge foi realizado.
+
+## Telas de cadastro, listagem e detalhes — 2026-09-08
+
+Implementado o recorte solicitado do item 3.3: GET /evidences lista registros e oferece Adicionar; GET /evidences/new apresenta formulário com Cancelar/Cadastrar; POST /evidences utiliza o caso de uso existente e redireciona à listagem após sucesso; GET /evidences/{id} apresenta detalhes ou HTTP 404. A página inicial oferece acesso à listagem. Erros de cadastro preservam os valores do formulário e exibem mensagem; falhas de banco não expõem detalhes internos.
+
+Detalhes exibem identificador, status, path atual, ambos os hashes, data e, quando presentes, path arquivado e mensagem de erro. HASH_DIVERGENTE recebe alerta visível e orientação para remover e cadastrar novamente. Arquivamento e alteração de status têm botões desabilitados para todos os estados nesta etapa, sem endpoints de execução. POST com status arbitrário é rejeitado. Não foi implementada remoção de registro (item 3.4).
+
+O item amplo 3.3 permanece pendente quanto à exibição da senha persistida, campo ainda ausente do modelo; a tela informa “Ainda não gerada.” neste estágio sem criptografia. Os campos e as telas solicitados nesta rodada estão implementados.
+
+Validação: ./mvnw test — BUILD SUCCESS, 88 testes, 0 falhas, 0 erros, 0 ignorados. Os 13 novos casos de controller usam MockMvc com renderização Thymeleaf e serviço/repositório simulados: listagem vazia/preenchida, navegação, cancelamento sem cadastro, sucesso/divergência, duplicidade, arquivo ausente, falha de banco, status adulterado/path vazio, detalhes/bloqueios, escape de HTML e evidência inexistente. A suíte existente de serviço, modelo e persistência também passou. Nenhum arquivamento real, movimentação, ZIP, AES-GCM, Docker, commit, push ou merge foi realizado.
