@@ -56,4 +56,18 @@ APROVADO: ADR-0002
 APROVADO: ADR-0003
 ```
 
-As tarefas 1.1–1.5 estão concluídas pela aprovação do plano apresentado e dos ADRs, agora Accepted. As tarefas 2.1–7.5 permanecem pendentes. Nenhuma implementação ou teste da aplicação foi realizado. Aprovação de dependências específicas, exclusão-fast-storage, execução do hook/Docker, ações destrutivas e merge não foi concedida por essas mensagens.
+As tarefas 1.1–1.5 estão concluídas pela aprovação do plano apresentado e dos ADRs, agora Accepted. As tarefas 2.1–7.5 permanecem pendentes. Na ocasião dessas aprovações, nenhuma implementação ou teste da aplicação havia sido realizado. Aprovação de dependências específicas, exclusão-fast-storage, execução do hook/Docker, ações destrutivas e merge não foi concedida por essas mensagens.
+
+## Correção pontual da fundação web — 2026-09-08
+
+Por solicitação explícita do usuário, foi implementada somente a página inicial: HomeController com GET / retornando a view index e template com título ForenStorage, subtítulo e mensagem solicitados. HomeControllerTest verifica HTTP 200 e a view index usando MockMvc standalone.
+
+Validação: `./mvnw test`, executado em `src/web`, terminou com BUILD SUCCESS: 2 testes, 0 falhas, 0 erros e 0 ignorados, incluindo o teste de contexto existente. O teste de controller verifica mapeamento e nome da view; não renderiza o template Thymeleaf.
+
+A fundação existente usa Spring Boot 4.0.8, divergindo de 3.x no plano; pom.xml e dependências não foram alterados nesta correção. As tarefas amplas 2.2 e 3.3 permanecem pendentes, pois esta página não implementa cadastro ou listagem. Nenhuma funcionalidade futura, commit, push ou merge foi realizada nesta correção.
+
+## Alinhamento da fundação ao Spring Boot 3.x — 2026-09-08
+
+Por solicitação explícita do usuário, pom.xml foi ajustado de Spring Boot 4.0.8 para 3.5.16, mantendo Java 21. Os starters webmvc e os três starters de teste específicos do Boot 4 foram substituídos por spring-boot-starter-web e spring-boot-starter-test, compatíveis com a linha 3 e JUnit 5. Demais dependências existentes continuam gerenciadas pelo parent. A divergência de versão mencionada no registro anterior está resolvida.
+
+HomeControllerTest agora usa @WebMvcTest e verifica HTTP 200, view index e os três textos do HTML renderizado por Thymeleaf. `./mvnw test` em src/web: BUILD SUCCESS, 2 testes, 0 falhas, 0 erros, 0 ignorados; o teste de contexto existente também passou. Nenhuma funcionalidade futura foi implementada e nenhum commit, push ou merge foi realizado.
