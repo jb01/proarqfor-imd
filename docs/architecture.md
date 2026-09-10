@@ -46,7 +46,9 @@ Implementado por ArchivingService, StorageCopyService, ZipService e CryptoServic
 5. Persistir path final, IV, senha, chave e parâmetros. Excluir ZIP aberto somente após o cifrado concluído; então persistir ARQUIVADO. Não planejar exclusão automática da cópia `.dd` de trabalho: limpeza adicional depende de revisão, e sua retenção é uma limitação explícita de confidencialidade e espaço.
 6. Na primeira falha, retomar uma vez da última etapa segura, usando a cópia de trabalho se a origem já saiu de fast. Na segunda falha, ERRO e mensagem visível. Preservar última cópia utilizável e não sobrescrever artefatos alheios. Banco e filesystem não formam uma transação atômica.
 
-Desarquivar apenas move o `.zip.enc` de archive para fast, mantém extensão e metadados e faz ARQUIVADO → DESARQUIVANDO → EM_ANALISE. Não recupera o `.dd`. O design aprovado determina bloquear novo arquivamento desse artefato cifrado e orientar novo cadastro de um `.dd`; decisão aprovada no plano em 2026-09-08.
+UnarchivingService implementa o desarquivamento simulado na camada de serviço; sua ação web permanece pendente. A atualização condicional confirma ARQUIVADO → DESARQUIVANDO antes de mover o `.zip.enc` de archive/<id> para fast/<id>, sem sobrescrita. Após movimento bem-sucedido, uma transação atualiza currentPath e confirma EM_ANALISE. Mantém extensão, bytes e metadados; archivedPath é a referência histórica da publicação. Não recupera o `.dd` nem recalcula hashes. O bloqueio existente impede novo arquivamento desse artefato cifrado e orienta novo cadastro de um `.dd`.
+
+Falha operacional termina em ERRO sem retry; se o movimento já terminou, a transação de erro registra o novo currentPath. Quando SQLite também impede ERRO, retorna falha explícita e preserva o cifrado em fast, podendo restar DESARQUIVANDO com path antigo. Parciais do movimento não são removidos automaticamente. Sem atomicidade entre banco/filesystem ou recuperação pós-crash; não há limpeza de work nesta operação.
 
 ## Decisões e limites
 

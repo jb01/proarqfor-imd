@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: cadastro e arquivamento integrados à interface, com exibição da senha persistida, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Desarquivamento, remoção de registros e revisão de merge continuam pendentes.
+**Etapa atual: cadastro e arquivamento integrados à interface; desarquivamento simulado implementado na camada de serviço, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. A ação web de Desarquivar, remoção de registros e revisão de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -105,13 +105,25 @@ O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execu
 
 ## Limitações e decisões aprovadas
 
+### Desarquivamento simulado na camada de serviço
+
+`UnarchivingService.unarchive(Long evidenceId)` exige ARQUIVADO e currentPath igual ao archivedPath. Uma atualização condicional no SQLite confirma DESARQUIVANDO antes de qualquer movimento; chamadas concorrentes não podem assumir a mesma operação. O serviço rejeita transação externa ativa para não depender de commit posterior.
+
+Move somente `archive/<id-interno>/<nome>.zip.enc` para `fast/<id-interno>/<nome>.zip.enc`, usando as propriedades existentes `forenstorage.storage.archive` e `forenstorage.storage.fast`. Exige arquivo regular/legível, rejeita symlinks e caminhos externos e não sobrescreve destinos existentes. Após sucesso, persiste currentPath e EM_ANALISE. Preserva bytes, extensão, hashes originais, data, senha, chave, IV, salt e parâmetros. archivedPath permanece como referência histórica; currentPath indica a localização atual. O bloqueio existente de re-arquivamento orienta novo cadastro de um `.dd`.
+
+Falhas operacionais produzem ERRO e mensagem sanitizada, sem retry. Se o movimento terminou mas a transação final falhou, a gravação de ERRO também registra o path de fast. Caso o SQLite impeça essa gravação, a exceção informa que ERRO não foi confirmado: o banco pode continuar em DESARQUIVANDO com path antigo, enquanto o cifrado está em fast. Filesystem e SQLite não são atômicos; falha do movimento pode deixar parcial, preservado para avaliação humana. Não há recuperação pós-crash nem proteção integral contra substituições concorrentes de paths por processos externos.
+
+Escopo deste recorte: serviço, atualização condicional do repositório, testes JUnit 5 e documentação. Proibidas alterações em interface, restauração/descriptografia/descompactação, hashes, criptografia, estados adicionais, dependências, hook ou regras Git. A cópia `.dd` de work continua retida; chave/IV e senha no SQLite continuam sendo limitações acadêmicas do ADR-0003. Nenhuma operação sobre evidências reais.
+
+Validação: **210 testes, 0 falhas, 0 erros, 0 ignorados**, incluindo 27 novos casos de UnarchivingService. Cobertura de movimento e metadados, estados bloqueados, concorrência, paths inválidos, colisão, parcial, rollback, falha SQLite e ciclo arquivar/retorno cifrado com re-arquivamento recusado. Arquivos sintéticos e banco temporário; comandos e resultados registrados em tasks.md.
+
 ### Arquivar pela interface e senha nos detalhes
 
 Nos detalhes, Arquivar envia `POST /evidences/{id}/archive` ao ArchivingService existente e aguarda o processamento síncrono. O botão é habilitado para EM_ANALISE, path terminado em .dd e ausência de archivedPath; essa verificação da tela não substitui a validação completa do arquivo, raiz e estado pelo serviço. POST forjado para estado/artefato inelegível é recusado; status manual não é aceito. Paths, hashes e senha enviados como parâmetros extras não são usados para alterar o registro. GET não inicia arquivamento.
 
 Após sucesso ou falha tratada, o navegador retorna aos detalhes por redirecionamento, com mensagem e nova leitura do estado persistido. O controller chama o serviço uma única vez: a repetição continua exclusivamente no orquestrador. Falhas SQLite recebem mensagem sem detalhes internos; se a consulta dos detalhes também estiver indisponível, retorna HTTP 503, sem apresentar estado como confirmado. Registro inexistente retorna HTTP 404.
 
-A senha persistida é exibida com escape HTML; null, vazio ou apenas espaços exibem “Ainda não gerada.”. A chave AES não é renderizada. A exibição da senha sem login permanece uma limitação acadêmica já aprovada. O fluxo de cópia, cifra, exclusões, retry e estados não foi alterado nesta integração. Alterações fora do recorte permanecem proibidas: desarquivamento, remoção de registros, edição arbitrária de status, novos serviços/dependências, hook e regras Git.
+A senha persistida é exibida com escape HTML; null, vazio ou apenas espaços exibem “Ainda não gerada.”. A chave AES não é renderizada. A exibição da senha sem login permanece uma limitação acadêmica já aprovada. O fluxo de cópia, cifra, exclusões, retry e estados não foi alterado nesta integração. Naquele recorte, ficaram fora do escopo desarquivamento, remoção de registros, edição arbitrária de status, novos serviços/dependências, hook e regras Git.
 
 Validação após esta integração: **183 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 32 testes do controller e um teste MVC integrado com serviços reais, SQLite e arquivos sintéticos temporários. O teste integrado confirma senha/path/status após arquivamento e recusa de um novo POST. Testes executados com o agente Mockito indicado abaixo; não houve teste manual em navegador nem operação sobre evidências reais.
 

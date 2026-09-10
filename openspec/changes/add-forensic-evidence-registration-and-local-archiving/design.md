@@ -46,6 +46,8 @@ Falha final persiste ERRO e mensagem legível, sem incluir segredos. Se SQLite e
 
 ### Desarquivamento simulado
 
+Implementado por UnarchivingService.unarchive(Long), somente na camada de serviço. Uma atualização condicional de estado/path e um bloqueio por id impedem chamadas duplicadas. A origem deve ser arquivo regular/legível .zip.enc em archive/<id-interno>, sem symlinks; destino fast/<id-interno> não permite sobrescrita. A transação inicial é confirmada antes do movimento; a final atualiza path e estado. archivedPath é mantido como referência histórica. Após movimento concluído e commit final falho, a tentativa de registrar ERRO também atualiza currentPath para fast. Falha nessa gravação informa estado não confirmado; não há rollback de arquivos, remoção de parciais ou recuperação automática. Integração web permanece pendente neste recorte.
+
 Mover .zip.enc de archive para fast e atualizar path, mantendo senha, IV e demais metadados. Persistir DESARQUIVANDO antes e EM_ANALISE após sucesso. Falha leva a ERRO, sem repetição obrigatória (retry é exclusivo do arquivamento). Não renomear para .dd, descriptografar, descompactar ou recalcular hash. Decisão aprovada: novo arquivamento requer .dd original; rejeitar .zip.enc devolvido e orientar remover registro e cadastrar novamente um .dd, sem criar estado extra.
 
 ### Guardrail
