@@ -28,9 +28,10 @@
 ## 5. Arquivamento síncrono após checkpoint
 
 - [ ] 5.1 Implementar cópia fast → work e exclusão condicionada ao sucesso aprovado; verificar cópia incompleta, fechamento falho, tamanho divergente, colisão e falha ao excluir, preservando a última cópia utilizável.
-- [ ] 5.2 Implementar ZIP e cifra conforme ADR-0003 aprovado; verificar senha de 10 alfanuméricos, chave válida, parâmetros persistidos, IV novo e preservação do ZIP na falha de finalização.
-  - Recorte ZIP concluído em 2026-09-09 por solicitação explícita do usuário: ZipService e testes. O item completo permanece pendente de cifra e suas validações.
+- [x] 5.2 Implementar ZIP e cifra conforme ADR-0003 aprovado; verificar senha de 10 alfanuméricos, chave válida, parâmetros persistidos, IV novo e preservação do ZIP na falha de finalização.
+  - ZIP e CryptoService concluídos nos recortes solicitados; validação da cifra registrada abaixo em 2026-09-09.
 - [ ] 5.3 Implementar publicação .zip.enc, persistência de metadados e exclusão do ZIP aberto após sucesso; verificar arquivo final, path, senha/IV e ARQUIVADO, sem excluir .dd de trabalho automaticamente.
+  - Publicação, metadados e exclusão condicionada do ZIP implementados no CryptoService; conclusão em ARQUIVADO e integração com o fluxo completo permanecem pendentes.
 - [ ] 5.4 Implementar uma repetição por etapa segura e ERRO na segunda falha; verificar sucesso na segunda tentativa, limite de duas tentativas, retomada após origem removida e falha de SQLite/limpeza após cifra publicada.
 
 ## 6. Desarquivamento simulado
@@ -47,6 +48,26 @@
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+Após a revisão do ZipService, o usuário respondeu nesta conversa: `Aprovado.`. Essa mensagem aprova somente o recorte apresentado; não equivale a `APROVADO: merge` nem aprova exclusão em fast.
+
+## CryptoService — 2026-09-09
+
+Por solicitação explícita do usuário, implementado somente o recorte de cifra AES/GCM/NoPadding, publicação em archive, persistência SQLite e exclusão do ZIP após sucesso. A solicitação autoriza implementar e testar essa exclusão em work com dados sintéticos; não autoriza exclusão em fast ou operações sobre evidências reais. ADRs mantidos Accepted e stack/dependências preservadas.
+
+CryptoService.encrypt(Long, Path) exige ARQUIVANDO e o ZIP irmão da cópia .dd apontada pelo registro em work. Gera senha de 10 alfanuméricos com SecureRandom, salt de 16 bytes, chave AES de 256 bits por PBKDF2WithHmacSHA256/600000 iterações, IV novo de 12 bytes e tag GCM de 128 bits. Cifra por streaming em temporário próprio, finaliza tag e fecha antes de publicar sem sobrescrita em archive/<id-interno>/<nome>.dd.zip.enc. Registra chave/IV/salt em Base64, senha, iterações, versão 1 e paths no SQLite. A transação retorna após commit antes de excluir o ZIP. A chamada rejeita transação externa ativa; não altera estados nem remove .dd. O contrato e o formato foram documentados no README.
+
+Validação inicial `./mvnw -Dtest=CryptoServiceTest test`: falhou antes dos testes por indisponibilidade de autoattach do Mockito/Byte Buddy. Reexecução com agente Mockito já presente: 17 testes passaram. Após adicionar os casos de IV novo após falha e falha de commit posterior ao flush, executada a suíte completa:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Resultado: BUILD SUCCESS, 114 testes, 0 falhas, 0 erros, 0 ignorados; 19 do CryptoService. Cobertura: bytes cifrados e tag final comparados a criptografia independente, tamanho chave/IV/salt, senha e derivação, releitura SQLite por conexão física antes da exclusão, parâmetros e paths persistidos, hashes preservados, IV novo inclusive após falha, temporários separados, escrita/fechamento/finalização falhos, falha SQLite real por trigger, commit simulado com rollback após flush, exclusão falha com metadados mantidos, colisão sem sobrescrita, ZIP inexistente, ZIP alheio/escape/symlinks, bloqueio dos outros cinco estados e de transação externa. Verificada ausência de chave/senha no log capturado da operação bem-sucedida; nenhum valor de chave foi incluído em código, documentação ou Git.
+
+Limitações: banco e filesystem não são atômicos; parcial pode permanecer, e falha de persistência após publicação deixa cifrado sem garantia de metadados confirmados, preservando o ZIP. Após falha de limpeza, artefato e metadados permanecem e nova chamada recusa recifrar. Retomada coordenada da etapa segura e limite de tentativas continuam pendentes no item 5.4. Não há isolamento contra substituição concorrente de paths ou recuperação automática pós-crash. Chave/senha no SQLite e .dd aberto em work são limitações acadêmicas, explicitadas no README; logs Hibernate que poderiam revelar parâmetros/conteúdo de entidade ficam OFF. As regras Git existentes não foram alteradas. Não foram usados dados reais, nem implementados restauração/descriptografia, exclusão em fast, transições novas ou fluxo completo.
+
+Checklist para revisão: CryptoService e campos persistentes implementados; testes adequados executados; limitações e formato documentados; item 5.2 concluído (7/26 tarefas), item 5.3 parcialmente implementado, demais checkpoints preservados. Encerrado o recorte solicitado sem commit, push, merge, Docker ou deploy; este relatório é submissão para revisão, não entrega/merge do MVP.
 
 ## ZipService isolado — 2026-09-09
 

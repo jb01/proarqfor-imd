@@ -103,6 +103,28 @@ O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execu
 
 ## Limitações e decisões aprovadas
 
+### CryptoService — recorte implementado
+
+`CryptoService.encrypt(Long evidenceId, Path zipPath)` cifra o ZIP já concluído pelo ZipService. Exige registro persistido em ARQUIVANDO, sem artefato arquivado, com currentPath apontando para a cópia `.dd` em work; o ZIP deve ser o arquivo irmão `<nome>.dd.zip`. Os diretórios são configuráveis por `forenstorage.storage.work` (padrão `storage/cold/work`) e `forenstorage.storage.archive` (padrão `storage/cold/archive`). O destino é `archive/<id-interno>/<nome>.dd.zip.enc`; o identificador textual da evidência não compõe diretórios.
+
+A cifra usa Java padrão, AES/GCM/NoPadding, IV aleatório novo de 12 bytes e tag de 128 bits. A senha contém 10 caracteres alfanuméricos gerados por SecureRandom; a chave AES de 256 bits deriva de PBKDF2WithHmacSHA256 com salt aleatório de 16 bytes e 600000 iterações, conforme ADR-0003. O formato versão 1 contém apenas os bytes cifrados seguidos da tag GCM de 16 bytes, sem cabeçalho ou AAD. IV, salt e chave são codificados em Base64 no SQLite; senha, número de iterações, versão do formato e paths também são persistidos. A versão identifica os algoritmos, tamanhos de chave/tag e organização descritos aqui.
+
+O serviço escreve por streaming em `.encrypt-*.part` dentro do diretório de destino, executa `doFinal`, fecha os streams e publica o `.zip.enc` sem sobrescrever destino existente. Depois confirma a transação SQLite dos metadados e paths; só então exclui o ZIP de work. A chamada rejeita uma transação externa ativa para impedir rollback posterior à exclusão. O `.dd` permanece preservado. O serviço mantém ARQUIVANDO: não implementa o fluxo completo, conclusão de status, retry automático, restauração ou descriptografia.
+
+Falhas de cifra/fechamento preservam ZIP, `.dd` e eventual temporário parcial. Falhas de persistência preservam ZIP e cifrado publicado; se o commit falhar, não há garantia de metadados utilizáveis para esse cifrado. Falha de exclusão preserva o cifrado e seus metadados já confirmados. Uma nova chamada não sobrescreve destino nem recifra registro com artefato publicado. A futura retomada da etapa pendente pertence ao item 5.4; não há recuperação automática após queda de processo. Validações recusam symlinks e ZIP de outro path, mas não garantem isolamento contra substituição concorrente por processos externos.
+
+**Limitação acadêmica:** a chave e a senha ficam no mesmo SQLite dos metadados. Base64 é codificação, não proteção; acesso ao banco compromete a confidencialidade do cifrado. O IV não é segredo, mas precisa corresponder ao arquivo. O `.dd` retido em work também permanece aberto. O serviço não registra segredos em logs, e o logging de parâmetros/extração JDBC e de conteúdo das entidades Hibernate está desativado. Não habilitar esses logs nem incluir chaves ou bancos contendo chaves no Git. As regras de ignore existentes foram preservadas; a autorização anterior de compartilhar dados não autoriza versionar as chaves desta etapa.
+
+Validação em 2026-09-09: suíte completa com 114 testes, 0 falhas, 0 erros e 0 ignorados; 19 casos do CryptoService usam arquivos sintéticos e SQLite temporário. Neste ambiente, o autoattach do Mockito falhou antes dos testes; a execução bem-sucedida usou o agente já instalado, sem novas dependências:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Esse caminho é específico deste ambiente. A validação confere cifra e tag por criptografia independente dos bytes conhecidos, sem implementar descriptografia. Nenhum banco ou arquivo real foi usado.
+
+### Limites gerais do MVP
+
 Sem login, autenticação, autorização, perfis, REST, microserviços, nuvem, limitação de throughput, filas, jobs assíncronos, MCP, integração externa, cadeia de custódia ou auditoria. Sem hash posterior ao cadastro e sem restauração real. Diretórios não simulam desempenho físico, redundância, backup, disponibilidade, retenção judicial ou escalabilidade; SQLite não representa banco corporativo concorrente.
 
 A senha alfanumérica de 10 caracteres não tem tamanho válido como chave AES. ADR-0003, aprovado em 2026-09-08, determina derivar uma chave de 256 bits com PBKDF2 disponível no Java e persistir parâmetros. Senha e chave no SQLite, senha exibida sem login e cópia .dd aberta em work são limitações acadêmicas, não práticas recomendadas para produção. GCM gera tag, mas o MVP não verificará essa tag por meio de restauração. ZIP pode não reduzir o tamanho de todo arquivo.

@@ -29,6 +29,11 @@ public class Evidence {
 
     private String archivedPath;
     private String encryptionIv;
+    private String encryptionPassword;
+    private String encryptionKey;
+    private String encryptionSalt;
+    private Integer encryptionIterations;
+    private Integer encryptionFormatVersion;
     private String errorMessage;
 
     @Column(nullable = false, updatable = false)
@@ -78,6 +83,22 @@ public class Evidence {
     public void setArchivedPath(String archivedPath) { this.archivedPath = archivedPath; }
     public void setEncryptionIv(String encryptionIv) { this.encryptionIv = encryptionIv; }
 
+    // Academic-only storage of the key alongside its metadata. Never include these fields in toString/logs.
+    public void recordEncryption(String path, String iv, String password, String key,
+                                 String salt, int iterations, int formatVersion) {
+        if (status != EvidenceStatus.ARQUIVANDO || archivedPath != null) {
+            throw new IllegalStateException("A evidência não está disponível para registrar a cifra");
+        }
+        archivedPath = required(path, "Path cifrado");
+        encryptionIv = required(iv, "IV");
+        encryptionPassword = required(password, "Senha");
+        encryptionKey = required(key, "Chave");
+        encryptionSalt = required(salt, "Salt");
+        encryptionIterations = iterations;
+        encryptionFormatVersion = formatVersion;
+        currentPath = archivedPath;
+    }
+
     public Long getId() { return id; }
     public String getEvidenceIdentifier() { return evidenceIdentifier; }
     public String getCurrentPath() { return currentPath; }
@@ -86,6 +107,11 @@ public class Evidence {
     public EvidenceStatus getStatus() { return status; }
     public String getArchivedPath() { return archivedPath; }
     public String getEncryptionIv() { return encryptionIv; }
+    public String getEncryptionPassword() { return encryptionPassword; }
+    public String getEncryptionKey() { return encryptionKey; }
+    public String getEncryptionSalt() { return encryptionSalt; }
+    public Integer getEncryptionIterations() { return encryptionIterations; }
+    public Integer getEncryptionFormatVersion() { return encryptionFormatVersion; }
     public String getErrorMessage() { return errorMessage; }
     public Instant getCreatedAt() { return createdAt; }
 
