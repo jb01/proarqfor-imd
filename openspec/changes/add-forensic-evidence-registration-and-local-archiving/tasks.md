@@ -1,12 +1,12 @@
 ## Situação atual — checklist reconciliado com a implementação
 
-16 das 26 tarefas numeradas estão integralmente concluídas; 10 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar também permanece pendente, registrada abaixo separadamente do serviço concluído. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
+16 das 26 tarefas numeradas estão integralmente concluídas; 10 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
 
-Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade e fluxos nos serviços; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface; desarquivamento simulado no serviço, com movimento do cifrado, transições e ERRO. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
+Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade e fluxos nos serviços; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface; desarquivamento simulado integrado à interface, com movimento do cifrado, transições, bloqueios e ERRO. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
 
-Pendências práticas principais: implementar remoção confirmada somente do registro e integração web de Desarquivar, concluir organização/configuração dos dados e teste de reinício, revisar os registros nominais de dependências, validar hook quando autorizado e realizar demonstração/revisão final.
+Pendências práticas principais: implementar remoção confirmada somente do registro, concluir organização/configuração dos dados e teste de reinício, revisar os registros nominais de dependências, validar hook quando autorizado e realizar demonstração/revisão final.
 
-Última execução comprovada: 210 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro do desarquivamento simulado abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
+Última execução comprovada: 228 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da integração web de Desarquivar abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
 
 ## 1. Revisão humana antes de qualquer implementação
 
@@ -33,7 +33,7 @@ Pendências práticas principais: implementar remoção confirmada somente do re
 - [x] 3.2 Implementar estados e transições permitidas no serviço; verificar todos os pares permitidos e proibidos, incluindo bloqueio total de HASH_DIVERGENTE/ERRO.
   - Matriz completa testada na entidade; cadastro, arquivamento e desarquivamento implementados nos serviços, com bloqueios para todos os estados inelegíveis e falhas operacionais. Não há seletor livre de status.
 - [x] 3.3 Implementar listagem, Adicionar, cadastro/Cancelar/Cadastrar e detalhes com todos os campos; verificar navegação MVC e erros de formulário, usando apenas ferramentas já aprovadas.
-  - Navegação, cadastro, listagem e detalhes completos, incluindo senha persistida com escape HTML e indicação de ausência. Arquivar conectado ao ArchivingService por POST, com mensagens e bloqueios testados. Pendência web fora do recorte atual: conectar Desarquivar ao serviço concluído em 6.1/6.2, com indicação de retorno cifrado e testes MVC; não há edição arbitrária de status.
+  - Navegação, cadastro, listagem e detalhes completos, incluindo senha persistida com escape HTML e indicação de ausência. Arquivar conectado ao ArchivingService por POST, com mensagens e bloqueios testados. Desarquivar conectado ao serviço de 6.1/6.2, com indicação de retorno cifrado, bloqueios e testes MVC; não há edição arbitrária de status.
 - [ ] 3.4 Implementar remoção somente de registro com confirmação e cancelamento; verificar registro removido, arquivo preservado e bloqueio durante operação em curso.
   - Pendente: não há fluxo de remoção implementado; incluir confirmação com identificador, cancelamento, preservação dos arquivos e bloqueio durante operação.
 
@@ -56,7 +56,7 @@ Pendências práticas principais: implementar remoção confirmada somente do re
 ## 6. Desarquivamento simulado
 
 - [x] 6.1 Implementar movimento de .zip.enc para fast com transições e atualização de path; verificar conteúdo e extensão preservados, sem descriptografia, descompactação ou recálculo de hash.
-  - UnarchivingService implementado e testado com SQLite e arquivos temporários, incluindo confirmação de DESARQUIVANDO por conexão independente antes do movimento. O serviço preserva artefato cifrado e metadados. A ação web permanece pendente e fora desta solicitação.
+  - UnarchivingService implementado e testado com SQLite e arquivos temporários, incluindo confirmação de DESARQUIVANDO por conexão independente antes do movimento. O serviço preserva artefato cifrado e metadados. A ação web foi integrada em recorte posterior, com bloqueios no GET de detalhes e no POST de execução.
 - [x] 6.2 Implementar erro do movimento e rejeição de re-arquivamento do .zip.enc conforme decisão revisada; verificar ERRO na falha, preservação de metadados e orientação de novo cadastro .dd.
   - Falha sem retry, ERRO e metadados preservados testados, incluindo rollback e falha SQLite após movimento. Ciclo real de arquivamento seguido do retorno simulado testado na camada de serviço; ArchivingService recusa o cifrado devolvido e orienta novo cadastro sem mudar EM_ANALISE.
 
@@ -66,12 +66,28 @@ Pendências práticas principais: implementar remoção confirmada somente do re
   - Pendente: nenhum Dockerfile/Compose encontrado no projeto; preparar somente na etapa final prevista.
 - [ ] 7.2 Obter autorização específica para executar Docker e demonstração destrutiva com dados sintéticos; verificar autorização antes de executar e demonstrar persistência após reinicialização.
 - [ ] 7.3 Executar validação integrada autorizada: cadastro correto/divergente, bloqueios, arquivamento, duas falhas e retorno simulado; verificar resultados reais registrados, arquivos e metadados esperados.
-  - Parcial: 210 testes cobrem os recortes implementados, incluindo cadastro/arquivamento/detalhes via MVC e arquivamento/retorno simulado no serviço com SQLite e arquivos temporários. Falta integrar Desarquivar à interface e validar o fluxo web final. Não confundir a suíte atual com a demonstração completa do MVP.
+  - Parcial: 228 testes cobrem os recortes implementados, incluindo cadastro/arquivamento/detalhes via MVC e arquivamento/retorno simulado no serviço com SQLite e arquivos temporários. Retorno simulado e falha de movimento também validados via MVC; a demonstração e revisão final continuam pendentes. Não confundir a suíte atual com a demonstração completa do MVP.
 - [ ] 7.4 Apresentar alterações, testes executados, limitações, riscos e checklist; verificar relatório humano revisável sem alegar testes não executados.
   - Relatórios por recorte e este checklist já existem. A revisão final do MVP permanece pendente até completar o escopo e executar sua validação integrada.
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+## Integração web de Desarquivar — recorte concluído
+
+Regras verificadas e implementadas: botão Desarquivar substitui Alterar status; habilitação somente em ARQUIVADO com currentPath igual ao archivedPath e extensão .zip.enc. POST /evidences/{id}/unarchive revalida esses critérios, recusa status manual e passa somente o id ao UnarchivingService existente. Não aceita paths/hashes/senha do formulário para alteração. Serviço chamado uma vez, sem retry adicional; mantém responsabilidade por transições, validação física e concorrência. GET não inicia operação. Redirecionamento aos detalhes apresenta estado/path relidos e mensagem de sucesso ou erro; sucesso informa retorno cifrado sem restauração. Retorno EM_ANALISE mantém ambos os botões bloqueados e orienta novo cadastro .dd. Banco indisponível não é apresentado como sucesso; erro de consulta retorna 503, id ausente retorna 404.
+
+Testes adequados criados e executados: 16 casos MVC adicionais (formulário, GET sem efeitos, cinco estados bloqueados, três inconsistências de artefato, status manual/id ausente, parâmetros extras, redirecionamento, quatro tipos de falha e falha de consulta) e dois testes integrados com SQLite/serviços reais em temporários: cadastro/arquivamento/retorno pela interface, bytes cifrados preservados e repetição bloqueada; colisão de destino produz ERRO visível e controles desabilitados. Senha continua visível/escapada e chave ausente do HTML. Na primeira execução, um teste antigo contou artefatos de outras evidências temporárias; corrigido para inspecionar somente work/<id> da própria evidência, preservando as verificações de quantidade e conteúdo.
+
+Comando executado novamente após correção:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Resultado: BUILD SUCCESS, 228 testes, 0 falhas, 0 erros, 0 ignorados; 48 testes de EvidenceController e 3 integrados MVC. Validação com renderização Thymeleaf via MockMvc, sem sessão manual no navegador ou operação sobre dados reais. Fluxo síncrono sem progresso em tempo real; limitações de SQLite/filesystem, chave/IV no banco e ausência de restauração permanecem.
+
+Checklist: integração concluída, regras e bloqueios verificados, testes executados, README/arquitetura/design/checklist atualizados. Permanecem 16/26 tarefas numeradas completas: fechada a pendência web associada a 3.3/6.1/6.2, sem antecipar demonstração ou revisão final. Proibidas e não realizadas alterações fora do escopo: serviços de arquivo/cifra, estados, hashes, restauração, remoção de registros, dependências, configuração de dados, hook e Git. Sem commit, push, merge, Docker ou deploy. Recorte submetido para revisão; APROVADO: merge permanece pendente.
 
 ## Desarquivamento somente simulado — serviço e transições
 

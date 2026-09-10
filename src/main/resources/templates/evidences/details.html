@@ -39,11 +39,18 @@
     <p id="actions-help" th:unless="${canArchive}">Arquivamento indisponível para o estado ou artefato atual.
         Um arquivo cifrado não pode ser arquivado novamente; nesse caso, remova o registro e cadastre um novo .dd.</p>
     <p>O status é atualizado pelas ações permitidas, sem edição manual.</p>
+    <p id="unarchive-help">Desarquivar é uma simulação: move o .zip.enc para fast e retorna a EM_ANALISE,
+        mantendo o arquivo cifrado. Não restaura o .dd. Disponível somente para ARQUIVADO com artefato cifrado válido.</p>
+    <p id="returned-ciphertext" th:if="${evidence.status.name() == 'EM_ANALISE' and evidence.archivedPath != null}">
+        Retorno simulado: o arquivo continua cifrado e não pode ser arquivado novamente.
+        Remova o registro e cadastre um novo .dd para iniciar outro arquivamento.</p>
     <div class="actions">
         <form method="post" th:action="@{/evidences/{id}/archive(id=${evidence.id})}">
             <button id="archive-button" type="submit" th:disabled="${!canArchive}" aria-describedby="actions-help">Arquivar</button>
         </form>
-        <button id="status-button" type="button" disabled aria-describedby="actions-help">Alterar status</button>
+        <form method="post" th:action="@{/evidences/{id}/unarchive(id=${evidence.id})}">
+            <button id="unarchive-button" type="submit" th:disabled="${!canUnarchive}" aria-describedby="unarchive-help">Desarquivar</button>
+        </form>
     </div>
 </main></body>
 </html>

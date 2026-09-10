@@ -5,6 +5,7 @@ import com.forenstorage.web.model.EvidenceStatus;
 import com.forenstorage.web.repository.EvidenceRepository;
 import com.forenstorage.web.service.EvidenceRegistrationService;
 import com.forenstorage.web.service.ArchivingService;
+import com.forenstorage.web.service.UnarchivingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -33,6 +34,109 @@ class EvidenceControllerTest {
     @MockitoBean EvidenceRepository repository;
     @MockitoBean EvidenceRegistrationService registration;
     @MockitoBean ArchivingService archiving;
+    @MockitoBean UnarchivingService unarchiving;
+    private Evidence archivedEvidence() {
+        Evidence e = evidence(EvidenceStatus.ARQUIVADO);
+        e.setCurrentPath("storage/cold/archive/7/test.zip.enc");
+        e.setArchivedPath(e.getCurrentPath());
+        return e;
+    }
+
+    @Test
+    void unarchiveFormUsesPostAndGetDoesNotExecute() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(archivedEvidence()));
+        mvc.perform(get("/evidences/7")).andExpect(model().attribute("canUnarchive", true))
+                .andExpect(content().string(containsString("action=\"/evidences/7/unarchive\"")))
+                .andExpect(content().string(not(matchesPattern("(?s).*id=\"unarchive-button\"[^>]*disabled.*"))))
+                .andExpect(content().string(containsString("Não restaura o .dd")))
+                .andExpect(content().string(not(containsString("Alterar status"))));
+        mvc.perform(get("/evidences/7/unarchive")).andExpect(status().isMethodNotAllowed());
+        verifyNoInteractions(unarchiving);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = EvidenceStatus.class, names = "ARQUIVADO", mode = EnumSource.Mode.EXCLUDE)
+    void unarchiveBlocksAllOtherStatesInViewAndPost(EvidenceStatus state) throws Exception {
+        Evidence e = archivedEvidence();
+        ReflectionTestUtils.setField(e, "status", state);
+        when(repository.findById(7L)).thenReturn(Optional.of(e));
+        mvc.perform(get("/evidences/7")).andExpect(model().attribute("canUnarchive", false))
+                .andExpect(content().string(matchesPattern("(?s).*id=\"unarchive-button\"[^>]*disabled.*")));
+        mvc.perform(post("/evidences/7/unarchive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attributeExists("error")).andExpect(flash().attributeCount(1));
+        verifyNoInteractions(unarchiving);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"missing", "different", "extension"})
+    void unarchiveRejectsInconsistentArtifact(String kind) throws Exception {
+        Evidence e = archivedEvidence();
+        if (kind.equals("missing")) e.setArchivedPath(null);
+        else if (kind.equals("different")) e.setArchivedPath("another.zip.enc");
+        else { e.setCurrentPath(PATH); e.setArchivedPath(PATH); }
+        when(repository.findById(7L)).thenReturn(Optional.of(e));
+        mvc.perform(get("/evidences/7")).andExpect(model().attribute("canUnarchive", false));
+        mvc.perform(post("/evidences/7/unarchive")).andExpect(flash().attributeExists("error"));
+        verifyNoInteractions(unarchiving);
+    }
+
+    @Test
+    void unarchiveUsesOnlyIdAndRedirectsToFreshDetails() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(archivedEvidence()));
+        var result = mvc.perform(post("/evidences/7/unarchive").param("currentPath", "untrusted.dd")
+                        .param("encryptionPassword", "untrusted").param("informedHash", "untrusted"))
+                .andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attribute("success", containsString("continua cifrado")))
+                .andExpect(flash().attributeCount(1)).andReturn();
+        Evidence returned = archivedEvidence();
+        ReflectionTestUtils.setField(returned, "status", EvidenceStatus.EM_ANALISE);
+        returned.setCurrentPath("storage/fast/7/test.zip.enc");
+        when(repository.findById(7L)).thenReturn(Optional.of(returned));
+        mvc.perform(get("/evidences/7").flashAttrs(result.getFlashMap()))
+                .andExpect(model().attribute("canArchive", false)).andExpect(model().attribute("canUnarchive", false))
+                .andExpect(content().string(containsString("Retorno simulado:")))
+                .andExpect(content().string(containsString(returned.getCurrentPath())));
+        verify(unarchiving, times(1)).unarchive(7L);
+        verify(repository, never()).saveAndFlush(any());
+        verifyNoInteractions(archiving, registration);
+    }
+
+    @Test
+    void unarchiveRejectsManualStatusAndUnknownId() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(archivedEvidence()));
+        mvc.perform(post("/evidences/7/unarchive").param("status", "EM_ANALISE"))
+                .andExpect(flash().attribute("error", containsString("não aceita status manual")));
+        mvc.perform(post("/evidences/99/unarchive")).andExpect(status().isNotFound());
+        verifyNoInteractions(unarchiving);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"io", "concurrent", "invalid", "sqlite"})
+    void unarchiveFailuresDoNotRetryOrClaimSuccess(String kind) throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(archivedEvidence()));
+        Exception failure = switch (kind) {
+            case "io" -> new IOException("não foi possível confirmar ERRO");
+            case "concurrent" -> new IllegalStateException("Desarquivamento já iniciado");
+            case "invalid" -> new IllegalArgumentException("Arquivo inválido");
+            default -> new org.springframework.dao.DataAccessResourceFailureException("internal SQL");
+        };
+        when(unarchiving.unarchive(7L)).thenThrow(failure);
+        mvc.perform(post("/evidences/7/unarchive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attributeExists("error")).andExpect(flash().attributeCount(1))
+                .andExpect(flash().attribute("error", not(containsString("internal SQL"))));
+        verify(unarchiving, times(1)).unarchive(7L);
+    }
+
+    @Test
+    void unarchiveLookupFailureIsSanitized() throws Exception {
+        when(repository.findById(7L)).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("internal SQL"));
+        mvc.perform(post("/evidences/7/unarchive"))
+                .andExpect(flash().attribute("error", containsString("não foi possível confirmar o desarquivamento")))
+                .andExpect(flash().attribute("error", not(containsString("internal SQL"))));
+        mvc.perform(get("/evidences/7")).andExpect(status().isServiceUnavailable());
+        verifyNoInteractions(unarchiving);
+    }
+
     private static final String HASH = "a".repeat(64);
     private static final String PATH = "storage/fast/test.dd";
 
@@ -142,7 +246,7 @@ class EvidenceControllerTest {
                 .andExpect(content().string(containsString("role=\"alert\"")))
                 .andExpect(content().string(containsString("Remova a evidência e cadastre novamente")))
                 .andExpect(content().string(matchesPattern("(?s).*id=\"archive-button\"[^>]*disabled[^>]*>.*")))
-                .andExpect(content().string(matchesPattern("(?s).*id=\"status-button\"[^>]*disabled[^>]*>.*")))
+                .andExpect(content().string(matchesPattern("(?s).*id=\"unarchive-button\"[^>]*disabled[^>]*>.*")))
                 .andExpect(content().string(not(containsString("<dt>Path arquivado</dt>"))));
     }
 

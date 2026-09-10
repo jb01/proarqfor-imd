@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: cadastro e arquivamento integrados à interface; desarquivamento simulado implementado na camada de serviço, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. A ação web de Desarquivar, remoção de registros e revisão de merge continuam pendentes.
+**Etapa atual: cadastro, arquivamento e desarquivamento simulado integrados à interface, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Remoção de registros e revisão de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -105,6 +105,16 @@ O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execu
 
 ## Limitações e decisões aprovadas
 
+### Desarquivar pela interface
+
+Os detalhes oferecem Desarquivar por `POST /evidences/{id}/unarchive`, substituindo o botão inativo Alterar status. Exige ARQUIVADO, currentPath igual ao archivedPath e extensão .zip.enc; os outros cinco estados e metadados inconsistentes bloqueiam o botão e o POST. O serviço existente revalida arquivo, raiz e concorrência. GET não executa a ação; status manual é recusado e parâmetros extras não alteram paths, hashes ou senha.
+
+A chamada é síncrona e única, sem retry no controller. Após sucesso ou falha, redireciona aos detalhes com nova leitura do banco. Sucesso informa que o arquivo continua cifrado em fast e que o .dd não foi restaurado. Em EM_ANALISE após retorno, ambos os botões ficam bloqueados e a tela orienta novo cadastro .dd. Falhas SQLite recebem mensagem sanitizada; consulta indisponível retorna 503 e id inexistente retorna 404. Senha continua escapada e chave AES não é exibida.
+
+Escopo autorizado: controller, template, testes MVC/integrados e documentação. Proibidas alterações em serviços de movimentação/cifra, dependências, estados, restauração, hashes, hook e regras Git. Permanecem as limitações de persistência e confidencialidade acadêmica descritas abaixo.
+
+Validação da integração: **228 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 48 testes de controller e 3 integrados MVC com serviços reais, SQLite e arquivos temporários. Não foi executada sessão manual no navegador.
+
 ### Desarquivamento simulado na camada de serviço
 
 `UnarchivingService.unarchive(Long evidenceId)` exige ARQUIVADO e currentPath igual ao archivedPath. Uma atualização condicional no SQLite confirma DESARQUIVANDO antes de qualquer movimento; chamadas concorrentes não podem assumir a mesma operação. O serviço rejeita transação externa ativa para não depender de commit posterior.
@@ -113,7 +123,7 @@ Move somente `archive/<id-interno>/<nome>.zip.enc` para `fast/<id-interno>/<nome
 
 Falhas operacionais produzem ERRO e mensagem sanitizada, sem retry. Se o movimento terminou mas a transação final falhou, a gravação de ERRO também registra o path de fast. Caso o SQLite impeça essa gravação, a exceção informa que ERRO não foi confirmado: o banco pode continuar em DESARQUIVANDO com path antigo, enquanto o cifrado está em fast. Filesystem e SQLite não são atômicos; falha do movimento pode deixar parcial, preservado para avaliação humana. Não há recuperação pós-crash nem proteção integral contra substituições concorrentes de paths por processos externos.
 
-Escopo deste recorte: serviço, atualização condicional do repositório, testes JUnit 5 e documentação. Proibidas alterações em interface, restauração/descriptografia/descompactação, hashes, criptografia, estados adicionais, dependências, hook ou regras Git. A cópia `.dd` de work continua retida; chave/IV e senha no SQLite continuam sendo limitações acadêmicas do ADR-0003. Nenhuma operação sobre evidências reais.
+Escopo do recorte anterior: serviço, atualização condicional do repositório, testes JUnit 5 e documentação. Naquela etapa ficaram fora do escopo interface, restauração/descriptografia/descompactação, hashes, criptografia, estados adicionais, dependências, hook ou regras Git. A cópia `.dd` de work continua retida; chave/IV e senha no SQLite continuam sendo limitações acadêmicas do ADR-0003. Nenhuma operação sobre evidências reais.
 
 Validação: **210 testes, 0 falhas, 0 erros, 0 ignorados**, incluindo 27 novos casos de UnarchivingService. Cobertura de movimento e metadados, estados bloqueados, concorrência, paths inválidos, colisão, parcial, rollback, falha SQLite e ciclo arquivar/retorno cifrado com re-arquivamento recusado. Arquivos sintéticos e banco temporário; comandos e resultados registrados em tasks.md.
 

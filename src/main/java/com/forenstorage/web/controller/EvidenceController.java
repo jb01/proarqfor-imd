@@ -5,6 +5,7 @@ import com.forenstorage.web.model.EvidenceStatus;
 import com.forenstorage.web.repository.EvidenceRepository;
 import com.forenstorage.web.service.EvidenceRegistrationService;
 import com.forenstorage.web.service.ArchivingService;
+import com.forenstorage.web.service.UnarchivingService;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -26,12 +27,14 @@ public class EvidenceController {
     private final EvidenceRepository repository;
     private final EvidenceRegistrationService registration;
     private final ArchivingService archiving;
+    private final UnarchivingService unarchiving;
 
     public EvidenceController(EvidenceRepository repository, EvidenceRegistrationService registration,
-                              ArchivingService archiving) {
+                              ArchivingService archiving, UnarchivingService unarchiving) {
         this.repository = repository;
         this.registration = registration;
         this.archiving = archiving;
+        this.unarchiving = unarchiving;
     }
 
     @GetMapping
@@ -82,6 +85,7 @@ public class EvidenceController {
             Evidence evidence = findEvidence(id);
             model.addAttribute("evidence", evidence);
             model.addAttribute("canArchive", canArchive(evidence));
+            model.addAttribute("canUnarchive", canUnarchive(evidence));
         } catch (DataAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Não foi possível consultar a evidência; o estado atual não pôde ser confirmado.");
@@ -112,6 +116,37 @@ public class EvidenceController {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/evidences/" + id;
+    }
+
+    @PostMapping("/{id}/unarchive")
+    public String unarchive(@PathVariable Long id, @RequestParam(required = false) String status,
+                            RedirectAttributes redirect) {
+        try {
+            Evidence evidence = findEvidence(id);
+            if (status != null) {
+                throw new IllegalArgumentException("A ação Desarquivar não aceita status manual.");
+            }
+            if (!canUnarchive(evidence)) {
+                throw new IllegalStateException("Desarquivamento indisponível para esta evidência. "
+                        + "É necessário ARQUIVADO com .zip.enc no path arquivado.");
+            }
+            // The service owns file validation, concurrency and all state transitions.
+            unarchiving.unarchive(id);
+            redirect.addFlashAttribute("success", "Desarquivamento simulado concluído. "
+                    + "O arquivo continua cifrado em fast; o .dd não foi restaurado.");
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute("error", "Falha de persistência: não foi possível confirmar o desarquivamento. "
+                    + "Consulte o estado atual da evidência.");
+        } catch (IllegalArgumentException | IllegalStateException | IOException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/evidences/" + id;
+    }
+
+    private boolean canUnarchive(Evidence evidence) {
+        return evidence.getStatus() == EvidenceStatus.ARQUIVADO
+                && evidence.getCurrentPath().equals(evidence.getArchivedPath())
+                && evidence.getCurrentPath().endsWith(".zip.enc");
     }
 
     private Evidence findEvidence(Long id) {
