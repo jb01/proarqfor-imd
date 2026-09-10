@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +10,7 @@
         <h1>ForenStorage</h1>
         <h2>Sistema de Gestão de Armazenamento de Evidências Forenses Digitais</h2>
         <p>Aplicação inicial em funcionamento.</p>
+        <p><a th:href="@{/evidences}">Gerenciar evidências</a></p>
     </main>
 </body>
 </html>

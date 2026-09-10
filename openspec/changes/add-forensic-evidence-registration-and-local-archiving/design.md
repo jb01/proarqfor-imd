@@ -1,6 +1,6 @@
 ## Context
 
-Ver proposal.md para motivação e docs/architecture.md para componentes e fluxo. Plano aprovado em 2026-09-08; ADR-0001, ADR-0002 e ADR-0003 estão Accepted. Implementação ainda não iniciada. Dependências específicas e checkpoints posteriores continuam pendentes; evidências em tasks.md.
+Ver proposal.md para motivação e docs/architecture.md para componentes e fluxo. Plano aprovado em 2026-09-08; ADR-0001, ADR-0002 e ADR-0003 estão Accepted. Cadastro, ZIP/cifra e orquestração foram implementados por recortes. O usuário aprovou explicitamente exclusão-fast-storage após revisão do fluxo; evidências e resultados estão em tasks.md. Checkpoints de merge e demonstração permanecem pendentes.
 
 ## Goals / Non-Goals
 
@@ -36,6 +36,8 @@ Aplicar ADR-0001/0002/0003, aprovados em 2026-09-08, na futura implementação. 
 
 ### Arquivamento e falhas
 
+Implementado na camada de serviço por ArchivingService/StorageCopyService e adaptação de ZipService/CryptoService. O [documento de revisão](../../../docs/archiving-orchestration-review.md) registra o fluxo aprovado, critérios de exclusão, matriz de testes e proibição de alterações fora do recorte. A atualização condicional do estado inicial e o bloqueio por id impedem início duplicado; o contexto de etapas fica na chamada síncrona, sem novos estados persistidos. Os nomes de tentativa preservam parciais e não sobrescrevem artefatos desconhecidos. Em recorte posterior, POST /evidences/{id}/archive passou a chamar esse serviço pela interface, sem alterar a orquestração. Detalhes exibem senha persistida com escape HTML, estado atualizado e mensagens após redirecionamento. Não há repetição no controller ou edição manual de status; falha de consulta SQLite recebe HTTP 503 e registro inexistente recebe HTTP 404.
+
 Seguir as seis etapas de docs/architecture.md. Sucesso da cópia exige leitura/escrita concluídas, fechamento sem erro e mesmo tamanho; nenhum novo hash. Persistir localização de trabalho após cópia confirmada e antes de excluir fast. Se excluir fast falhar, não fingir sucesso: retentar com destino já confirmado. Um marcador de etapa da operação síncrona distingue parcial de completo; não confiar apenas em existência de arquivo. Não exigir reinício integral depois de cada falha.
 
 No máximo duas tentativas totais; a segunda só ocorre se a primeira falhar. Cópia parcial nunca autoriza exclusão; segunda tentativa usa origem preservada. Depois da remoção de fast, segunda tentativa usa .dd de work. Falha no ZIP preserva .dd. Falha na cifra preserva ZIP; nova cifra usa novo IV e destino temporário separado. .zip.enc só é publicado após tag GCM finalizada e fechamento. Se publicação já ocorreu e falha a persistência ou limpeza do ZIP, repetir só a etapa pendente, sem cifrar de novo artefato concluído. Persistir metadados antes de remover ZIP; ARQUIVADO somente quando também removido o ZIP. Não sobrescrever destinos desconhecidos. Manter .dd de work, sem limpeza adicional automática.
@@ -43,6 +45,8 @@ No máximo duas tentativas totais; a segunda só ocorre se a primeira falhar. C�
 Falha final persiste ERRO e mensagem legível, sem incluir segredos. Se SQLite estiver indisponível, não é possível garantir gravar ERRO: mostrar erro na resposta e preservar artefatos; informar a limitação, sem declarar operação concluída. Sem mecanismo automático pós-crash; interrupções podem deixar estado intermediário e exigem avaliação humana fora do fluxo automático do MVP.
 
 ### Desarquivamento simulado
+
+Implementado por UnarchivingService.unarchive(Long), somente na camada de serviço. Uma atualização condicional de estado/path e um bloqueio por id impedem chamadas duplicadas. A origem deve ser arquivo regular/legível .zip.enc em archive/<id-interno>, sem symlinks; destino fast/<id-interno> não permite sobrescrita. A transação inicial é confirmada antes do movimento; a final atualiza path e estado. archivedPath é mantido como referência histórica. Após movimento concluído e commit final falho, a tentativa de registrar ERRO também atualiza currentPath para fast. Falha nessa gravação informa estado não confirmado; não há rollback de arquivos, remoção de parciais ou recuperação automática. Integração web concluída em recorte posterior: POST /evidences/{id}/unarchive chama o serviço uma vez, rejeita status manual e estados/artefatos inelegíveis, redireciona aos detalhes e informa retorno cifrado sem restauração. O botão Desarquivar substitui Alterar status; GET não executa a operação.
 
 Mover .zip.enc de archive para fast e atualizar path, mantendo senha, IV e demais metadados. Persistir DESARQUIVANDO antes e EM_ANALISE após sucesso. Falha leva a ERRO, sem repetição obrigatória (retry é exclusivo do arquivamento). Não renomear para .dd, descriptografar, descompactar ou recalcular hash. Decisão aprovada: novo arquivamento requer .dd original; rejeitar .zip.enc devolvido e orientar remover registro e cadastrar novamente um .dd, sem criar estado extra.
 
@@ -65,4 +69,8 @@ Não há migração, deploy ou rollback a executar agora. Após aprovações: im
 
 ## Resultado da revisão
 
-Plano e ADRs aprovados pelo usuário em 2026-09-08, incluindo exclusão somente do registro, status controlado pelas ações, path sob fast, derivação de senha, retenção do .dd de trabalho e bloqueio de re-arquivamento do .zip.enc desarquivado. Não há requisito de restauração real implícito nessas decisões. Aprovações de dependências específicas, exclusão-fast-storage e merge continuam pendentes.
+Plano e ADRs aprovados pelo usuário em 2026-09-08, incluindo exclusão somente do registro, status controlado pelas ações, path sob fast, derivação de senha, retenção do .dd de trabalho e bloqueio de re-arquivamento do .zip.enc desarquivado. Não há requisito de restauração real implícito nessas decisões. O checkpoint exclusão-fast-storage foi posteriormente aprovado para o fluxo revisado; a orquestração e os testes sintéticos foram concluídos. Merge e checkpoints restantes continuam pendentes, conforme tasks.md.
+
+### Raiz de dados e reinício — task 2.3
+
+Banco padrão em ${forenstorage.data-root}/data/arqfor.db e storages sob a mesma raiz, padrão .; configurar raiz absoluta para execução independente do diretório de trabalho. Diretório pai do banco criado antes da conexão; falha de criação impede inicialização sem sobrescrever arquivo. URL SQLite em memória e overrides existentes preservados. Banco antigo não é migrado automaticamente. Teste fecha contexto Spring/pool/JPA e inicia novo contexto sobre banco e arquivos temporários; não equivale a reinício de processo ou demonstração Docker.

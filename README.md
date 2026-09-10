@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: fundação web mínima na raiz do repositório, com Spring Boot 3.5.16 e Java 21.** GET / renderiza a página ForenStorage. Os três ADRs estão Accepted; as funcionalidades de gestão de evidências e os checkpoints posteriores continuam pendentes.
+**Etapa atual: cadastro, arquivamento e desarquivamento simulado integrados à interface, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Remoção de registros e revisão de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -18,6 +18,16 @@ Cada evidência representa um único arquivo `.dd`. O MVP verificará SHA-256 no
 | data/arqfor.db | Metadados SQLite, separados da aplicação |
 
 Na reorganização para a raiz, o `.gitignore` foi unificado conforme solicitado: preserva regras Maven/IDE e protege SQLite, arquivos `.dd`, `.zip`, `.enc`, storage, chaves e configurações locais. Essas regras não alteram os checkpoints de implementação ou autorizam exclusões de dados.
+
+## Banco e raiz de dados
+
+O banco padrão agora é `data/arqfor.db`. `DataSourceConfiguration` cria o diretório pai antes de abrir o pool JDBC; se o diretório não puder ser criado, a inicialização falha sem substituir arquivos existentes. Não há migração automática: o antigo `forenstorage.db` permanece intacto e seus registros não aparecem automaticamente no novo banco.
+
+`forenstorage.data-root` define a raiz comum de `data/arqfor.db` e dos três caminhos `storage/fast`, `storage/cold/work` e `storage/cold/archive`. O padrão `.` mantém a execução a partir da raiz do projeto. Para executar de outro diretório, defina uma raiz absoluta estável, por exemplo `--forenstorage.data-root=/caminho/dados-arqfor`. Os overrides existentes de `spring.datasource.url` e `forenstorage.storage.*` continuam disponíveis. URLs SQLite em memória são preservadas; URLs SQLite no formato URI `file:` ficam a cargo do driver e exigem diretório previamente preparado.
+
+A comprovação de reinício fecha inteiramente o primeiro contexto Spring, incluindo EntityManagerFactory e pool JDBC, e inicia uma nova aplicação no mesmo diretório temporário. Verifica registros, unicidade, campos criptográficos opcionais/preenchidos, hashes e bytes cifrados persistidos. É reinício de contexto na mesma JVM, sem Docker nem reinício de processo/container. Persistência não significa recuperação automática de operações interrompidas.
+
+Validação deste recorte: **230 testes aprovados**, sem falhas, erros ou ignorados, incluindo dois novos testes de reinício e falha de diretório.
 
 ## Comportamento planejado
 
@@ -52,6 +62,8 @@ OPENSPEC_TELEMETRY=0 openspec status --change add-forensic-evidence-registration
 Artefatos completos no OpenSpec não significam implementação completa do MVP. Execute os comandos Maven a partir da raiz do repositório, usando `./mvnw`: `./mvnw test` para testes e `./mvnw clean package` para gerar o pacote. Última validação em 2026-09-08: 2 testes, nenhuma falha ou erro, incluindo contexto Spring e página inicial renderizada.
 
 ## Checkpoints
+
+Revisão da orquestração completa: [regras de negócio, fluxo de exclusão e matriz de testes](docs/archiving-orchestration-review.md). Após a revisão, o usuário enviou `APROVADO: exclusão-fast-storage`; a implementação dos itens 5.1/5.3/5.4 e os testes com arquivos sintéticos temporários estão concluídos. A aprovação registrada em tasks.md cobre o fluxo apresentado; não autoriza operações destrutivas sobre evidências reais, commit ou merge.
 
 Checkpoint inicial concluído: mensagens recebidas do usuário em 2026-09-08, registradas em tasks.md:
 
@@ -102,6 +114,78 @@ Com aprovação humana, restaurar no editor o matcher `^ARQFOR_HOOK_DESABILITADO
 O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execução, terminais externos ou ferramentas fora da cobertura. A implementação deve ter suas próprias condições de cópia segura. O hook não foi habilitado nem executado e sua eficácia em integração ainda precisa ser confirmada.
 
 ## Limitações e decisões aprovadas
+
+### Desarquivar pela interface
+
+Os detalhes oferecem Desarquivar por `POST /evidences/{id}/unarchive`, substituindo o botão inativo Alterar status. Exige ARQUIVADO, currentPath igual ao archivedPath e extensão .zip.enc; os outros cinco estados e metadados inconsistentes bloqueiam o botão e o POST. O serviço existente revalida arquivo, raiz e concorrência. GET não executa a ação; status manual é recusado e parâmetros extras não alteram paths, hashes ou senha.
+
+A chamada é síncrona e única, sem retry no controller. Após sucesso ou falha, redireciona aos detalhes com nova leitura do banco. Sucesso informa que o arquivo continua cifrado em fast e que o .dd não foi restaurado. Em EM_ANALISE após retorno, ambos os botões ficam bloqueados e a tela orienta novo cadastro .dd. Falhas SQLite recebem mensagem sanitizada; consulta indisponível retorna 503 e id inexistente retorna 404. Senha continua escapada e chave AES não é exibida.
+
+Escopo autorizado: controller, template, testes MVC/integrados e documentação. Proibidas alterações em serviços de movimentação/cifra, dependências, estados, restauração, hashes, hook e regras Git. Permanecem as limitações de persistência e confidencialidade acadêmica descritas abaixo.
+
+Validação da integração: **228 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 48 testes de controller e 3 integrados MVC com serviços reais, SQLite e arquivos temporários. Não foi executada sessão manual no navegador.
+
+### Desarquivamento simulado na camada de serviço
+
+`UnarchivingService.unarchive(Long evidenceId)` exige ARQUIVADO e currentPath igual ao archivedPath. Uma atualização condicional no SQLite confirma DESARQUIVANDO antes de qualquer movimento; chamadas concorrentes não podem assumir a mesma operação. O serviço rejeita transação externa ativa para não depender de commit posterior.
+
+Move somente `archive/<id-interno>/<nome>.zip.enc` para `fast/<id-interno>/<nome>.zip.enc`, usando as propriedades existentes `forenstorage.storage.archive` e `forenstorage.storage.fast`. Exige arquivo regular/legível, rejeita symlinks e caminhos externos e não sobrescreve destinos existentes. Após sucesso, persiste currentPath e EM_ANALISE. Preserva bytes, extensão, hashes originais, data, senha, chave, IV, salt e parâmetros. archivedPath permanece como referência histórica; currentPath indica a localização atual. O bloqueio existente de re-arquivamento orienta novo cadastro de um `.dd`.
+
+Falhas operacionais produzem ERRO e mensagem sanitizada, sem retry. Se o movimento terminou mas a transação final falhou, a gravação de ERRO também registra o path de fast. Caso o SQLite impeça essa gravação, a exceção informa que ERRO não foi confirmado: o banco pode continuar em DESARQUIVANDO com path antigo, enquanto o cifrado está em fast. Filesystem e SQLite não são atômicos; falha do movimento pode deixar parcial, preservado para avaliação humana. Não há recuperação pós-crash nem proteção integral contra substituições concorrentes de paths por processos externos.
+
+Escopo do recorte anterior: serviço, atualização condicional do repositório, testes JUnit 5 e documentação. Naquela etapa ficaram fora do escopo interface, restauração/descriptografia/descompactação, hashes, criptografia, estados adicionais, dependências, hook ou regras Git. A cópia `.dd` de work continua retida; chave/IV e senha no SQLite continuam sendo limitações acadêmicas do ADR-0003. Nenhuma operação sobre evidências reais.
+
+Validação: **210 testes, 0 falhas, 0 erros, 0 ignorados**, incluindo 27 novos casos de UnarchivingService. Cobertura de movimento e metadados, estados bloqueados, concorrência, paths inválidos, colisão, parcial, rollback, falha SQLite e ciclo arquivar/retorno cifrado com re-arquivamento recusado. Arquivos sintéticos e banco temporário; comandos e resultados registrados em tasks.md.
+
+### Arquivar pela interface e senha nos detalhes
+
+Nos detalhes, Arquivar envia `POST /evidences/{id}/archive` ao ArchivingService existente e aguarda o processamento síncrono. O botão é habilitado para EM_ANALISE, path terminado em .dd e ausência de archivedPath; essa verificação da tela não substitui a validação completa do arquivo, raiz e estado pelo serviço. POST forjado para estado/artefato inelegível é recusado; status manual não é aceito. Paths, hashes e senha enviados como parâmetros extras não são usados para alterar o registro. GET não inicia arquivamento.
+
+Após sucesso ou falha tratada, o navegador retorna aos detalhes por redirecionamento, com mensagem e nova leitura do estado persistido. O controller chama o serviço uma única vez: a repetição continua exclusivamente no orquestrador. Falhas SQLite recebem mensagem sem detalhes internos; se a consulta dos detalhes também estiver indisponível, retorna HTTP 503, sem apresentar estado como confirmado. Registro inexistente retorna HTTP 404.
+
+A senha persistida é exibida com escape HTML; null, vazio ou apenas espaços exibem “Ainda não gerada.”. A chave AES não é renderizada. A exibição da senha sem login permanece uma limitação acadêmica já aprovada. O fluxo de cópia, cifra, exclusões, retry e estados não foi alterado nesta integração. Naquele recorte, ficaram fora do escopo desarquivamento, remoção de registros, edição arbitrária de status, novos serviços/dependências, hook e regras Git.
+
+Validação após esta integração: **183 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 32 testes do controller e um teste MVC integrado com serviços reais, SQLite e arquivos sintéticos temporários. O teste integrado confirma senha/path/status após arquivamento e recusa de um novo POST. Testes executados com o agente Mockito indicado abaixo; não houve teste manual em navegador nem operação sobre evidências reais.
+
+### Orquestração de arquivamento
+
+`ArchivingService.archive(Long evidenceId)` executa sincronamente o fluxo completo na camada de serviço. Exige EM_ANALISE, um .dd regular/legível dentro de fast e chamada fora de transação ativa. Rejeita estados bloqueados, paths externos, symlinks e artefato já arquivado, inclusive .zip.enc retornado da simulação. Usa uma exclusão mútua por id no serviço e atualização condicional de EM_ANALISE para ARQUIVANDO no SQLite para impedir processamento duplicado. A ação web descrita acima chama esse serviço sem mudar o fluxo aprovado.
+
+StorageCopyService cria um diretório de tentativa em `work/<id-interno>/copy-*` e copia por streaming sem sobrescrita. Só confirma a cópia após EOF, contagem de bytes, fechamento de ambos os streams e tamanho igual ao da origem. Antes de remover fast, confirma o path de work no SQLite e revalida tamanho, data de modificação e identidade dos arquivos de origem e destino. Não há novo hash. O .dd de work é preservado.
+
+O ZIP de cada tentativa recebe nome próprio `<nome>.dd.<uuid>.zip`; somente o ZIP concluído segue para a cifra. O contexto da mesma chamada registra cópia confirmada, path persistido, remoção de fast, ZIP concluído, cifra fechada, publicação, metadados confirmados e remoção do ZIP. Após todas essas etapas, a transação final confirma ARQUIVADO. O esquema de dados e os estados existentes foram preservados.
+
+Existe um único retry global: uma primeira falha retoma da etapa pendente; uma segunda falha, mesmo em outra etapa, encerra a operação. O estado permanece ARQUIVANDO durante a retomada. Falha após publicação repete somente persistência/limpeza, mantendo os mesmos parâmetros e bytes cifrados. Uma nova cifra, necessária após falha de finalização, usa outro IV e temporário. Na segunda falha, registra ERRO e mensagem sem segredos; se o banco impedir essa gravação, retorna IOException informando que ERRO não pôde ser confirmado. A escrita do erro terminal não inicia uma terceira tentativa de arquivamento.
+
+Limitações preservadas: sem recuperação após queda do processo e sem transação atômica entre SQLite/filesystem. Parciais de tentativas malsucedidas permanecem para avaliação humana, inclusive ZIP parcial quando a segunda tentativa consegue concluir; o ZIP completo utilizado na cifra é removido somente após sucesso e commit. Mudanças concorrentes por processos externos não são integralmente detectáveis, e a verificação de tamanho/metadados não substitui hash. Nenhum comando de arquivamento foi executado sobre os storages reais do projeto.
+
+Validação deste recorte: **163 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 37 de ArchivingService e 12 de StorageCopyService. A suíte existente também passou. Comando executado no ambiente, utilizando o agente Mockito já instalado:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+### CryptoService — recorte implementado
+
+`CryptoService.encrypt(Long evidenceId, Path zipPath)` cifra o ZIP já concluído pelo ZipService. Exige registro persistido em ARQUIVANDO, sem artefato arquivado, com currentPath apontando para a cópia `.dd` em work; o ZIP deve ser o arquivo irmão `<nome>.dd.zip`. Os diretórios são configuráveis por `forenstorage.storage.work` (padrão `storage/cold/work`) e `forenstorage.storage.archive` (padrão `storage/cold/archive`). O destino é `archive/<id-interno>/<nome>.dd.zip.enc`; o identificador textual da evidência não compõe diretórios.
+
+A cifra usa Java padrão, AES/GCM/NoPadding, IV aleatório novo de 12 bytes e tag de 128 bits. A senha contém 10 caracteres alfanuméricos gerados por SecureRandom; a chave AES de 256 bits deriva de PBKDF2WithHmacSHA256 com salt aleatório de 16 bytes e 600000 iterações, conforme ADR-0003. O formato versão 1 contém apenas os bytes cifrados seguidos da tag GCM de 16 bytes, sem cabeçalho ou AAD. IV, salt e chave são codificados em Base64 no SQLite; senha, número de iterações, versão do formato e paths também são persistidos. A versão identifica os algoritmos, tamanhos de chave/tag e organização descritos aqui.
+
+O serviço escreve por streaming em `.encrypt-*.part` dentro do diretório de destino, executa `doFinal`, fecha os streams e publica o `.zip.enc` sem sobrescrever destino existente. Depois confirma a transação SQLite dos metadados e paths; só então exclui o ZIP de work. A chamada rejeita uma transação externa ativa para impedir rollback posterior à exclusão. O `.dd` permanece preservado. A chamada pública isolada mantém ARQUIVANDO e não executa retry. Na integração com ArchivingService, um contexto interno conserva etapas e parâmetros durante a retomada; somente o orquestrador conclui ARQUIVADO. Sem restauração ou descriptografia.
+
+Falhas de cifra/fechamento preservam ZIP, `.dd` e eventual temporário parcial. Falhas de persistência preservam ZIP e cifrado publicado; o orquestrador retém os parâmetros para a repetição da gravação na mesma chamada. Se a falha persistir ou o processo cair antes do commit, não há garantia de metadados utilizáveis para esse cifrado. Falha de exclusão preserva o cifrado e seus metadados já confirmados. Uma nova chamada pública isolada não sobrescreve destino nem recifra registro com artefato publicado. Não há recuperação automática após queda de processo. Validações recusam symlinks e ZIP de outro path, mas não garantem isolamento contra substituição concorrente por processos externos.
+
+**Limitação acadêmica:** a chave e a senha ficam no mesmo SQLite dos metadados. Base64 é codificação, não proteção; acesso ao banco compromete a confidencialidade do cifrado. O IV não é segredo, mas precisa corresponder ao arquivo. O `.dd` retido em work também permanece aberto. O serviço não registra segredos em logs, e o logging de parâmetros/extração JDBC e de conteúdo das entidades Hibernate está desativado. Não habilitar esses logs nem incluir chaves ou bancos contendo chaves no Git. As regras de ignore existentes foram preservadas; a autorização anterior de compartilhar dados não autoriza versionar as chaves desta etapa.
+
+Validação em 2026-09-09: suíte completa com 114 testes, 0 falhas, 0 erros e 0 ignorados; 19 casos do CryptoService usam arquivos sintéticos e SQLite temporário. Neste ambiente, o autoattach do Mockito falhou antes dos testes; a execução bem-sucedida usou o agente já instalado, sem novas dependências:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Esse caminho é específico deste ambiente. A validação confere cifra e tag por criptografia independente dos bytes conhecidos, sem implementar descriptografia. Nenhum banco ou arquivo real foi usado.
+
+### Limites gerais do MVP
 
 Sem login, autenticação, autorização, perfis, REST, microserviços, nuvem, limitação de throughput, filas, jobs assíncronos, MCP, integração externa, cadeia de custódia ou auditoria. Sem hash posterior ao cadastro e sem restauração real. Diretórios não simulam desempenho físico, redundância, backup, disponibilidade, retenção judicial ou escalabilidade; SQLite não representa banco corporativo concorrente.
 

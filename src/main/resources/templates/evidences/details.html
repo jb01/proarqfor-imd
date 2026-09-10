@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detalhes da evidência — ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/evidences.css}">
+</head>
+<body><main>
+    <h1>Detalhes da evidência</h1>
+    <nav><a th:href="@{/evidences}">Voltar à listagem</a></nav>
+    <p th:if="${success}" th:text="${success}" role="status"></p>
+    <p th:if="${error}" th:text="${error}" class="alert" role="alert"></p>
+    <div th:if="${evidence.status.name() == 'HASH_DIVERGENTE'}" class="alert" role="alert">
+        <strong>HASH_DIVERGENTE: os hashes não coincidem.</strong>
+        <p>Arquivamento e mudanças de status estão bloqueados. Remova a evidência e cadastre novamente.</p>
+    </div>
+    <div th:if="${evidence.status.name() == 'ERRO'}" class="alert" role="alert">
+        <strong>ERRO: arquivamento e mudanças de status estão bloqueados.</strong>
+    </div>
+    <dl>
+        <dt>Identificador</dt><dd th:text="${evidence.evidenceIdentifier}"></dd>
+        <dt>Status</dt><dd th:text="${evidence.status}"></dd>
+        <dt>Path atual</dt><dd th:text="${evidence.currentPath}"></dd>
+        <dt>Hash informado (original)</dt><dd th:text="${evidence.informedHash}"></dd>
+        <dt>Hash calculado (conferido)</dt><dd th:text="${evidence.calculatedHash}"></dd>
+        <dt>Data do cadastro</dt><dd th:text="${evidence.createdAt}"></dd>
+        <dt>Senha da criptografia</dt>
+        <dd id="encryption-password" th:text="${evidence.encryptionPassword == null or evidence.encryptionPassword.isBlank()
+                ? 'Ainda não gerada.' : evidence.encryptionPassword}">Ainda não gerada.</dd>
+        <th:block th:if="${evidence.archivedPath != null and !#strings.isEmpty(evidence.archivedPath)}">
+            <dt>Path arquivado</dt><dd th:text="${evidence.archivedPath}"></dd>
+        </th:block>
+        <th:block th:if="${evidence.errorMessage != null and !#strings.isEmpty(evidence.errorMessage)}">
+            <dt>Mensagem de erro</dt><dd class="alert" role="alert" th:text="${evidence.errorMessage}"></dd>
+        </th:block>
+    </dl>
+    <p id="actions-help" th:if="${canArchive}">Arquivar inicia o processamento. Aguarde a conclusão da solicitação.</p>
+    <p id="actions-help" th:unless="${canArchive}">Arquivamento indisponível para o estado ou artefato atual.
+        Um arquivo cifrado não pode ser arquivado novamente; nesse caso, remova o registro e cadastre um novo .dd.</p>
+    <p>O status é atualizado pelas ações permitidas, sem edição manual.</p>
+    <p id="unarchive-help">Desarquivar é uma simulação: move o .zip.enc para fast e retorna a EM_ANALISE,
+        mantendo o arquivo cifrado. Não restaura o .dd. Disponível somente para ARQUIVADO com artefato cifrado válido.</p>
+    <p id="returned-ciphertext" th:if="${evidence.status.name() == 'EM_ANALISE' and evidence.archivedPath != null}">
+        Retorno simulado: o arquivo continua cifrado e não pode ser arquivado novamente.
+        Remova o registro e cadastre um novo .dd para iniciar outro arquivamento.</p>
+    <div class="actions">
+        <form method="post" th:action="@{/evidences/{id}/archive(id=${evidence.id})}">
+            <button id="archive-button" type="submit" th:disabled="${!canArchive}" aria-describedby="actions-help">Arquivar</button>
+        </form>
+        <form method="post" th:action="@{/evidences/{id}/unarchive(id=${evidence.id})}">
+            <button id="unarchive-button" type="submit" th:disabled="${!canUnarchive}" aria-describedby="unarchive-help">Desarquivar</button>
+        </form>
+    </div>
+</main></body>
+</html>

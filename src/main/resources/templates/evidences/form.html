@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cadastrar evidência — ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/evidences.css}">
+</head>
+<body><main>
+    <h1>Cadastrar evidência</h1>
+    <p th:if="${error}" class="alert" role="alert" th:text="${error}"></p>
+    <form method="post" th:action="@{/evidences}">
+        <label for="evidenceIdentifier">Identificador único</label>
+        <input id="evidenceIdentifier" name="evidenceIdentifier" th:value="${evidenceIdentifier}" placeholder="0001/2026" required>
+        <label for="currentPath">Path atual</label>
+        <input id="currentPath" name="currentPath" th:value="${currentPath}" placeholder="storage/fast/evidencia.dd" aria-describedby="path-help" required>
+        <p id="path-help">Informe o caminho de um arquivo .dd existente em storage/fast.</p>
+        <label for="informedHash">Hash SHA-256 informado</label>
+        <input id="informedHash" name="informedHash" th:value="${informedHash}" pattern="[0-9a-fA-F]{64}" minlength="64" maxlength="64" required>
+        <label for="status">Status inicial pretendido</label>
+        <input id="status" name="status" value="EM_ANALISE" readonly aria-describedby="status-help">
+        <p id="status-help">A verificação do hash determina o status final. Se houver divergência, o cadastro será salvo como HASH_DIVERGENTE.</p>
+        <div class="actions"><a th:href="@{/evidences}">Cancelar</a><button type="submit">Cadastrar</button></div>
+    </form>
+</main></body>
+</html>
