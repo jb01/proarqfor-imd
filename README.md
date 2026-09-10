@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: fundação web mínima na raiz do repositório, com Spring Boot 3.5.16 e Java 21.** GET / renderiza a página ForenStorage. Os três ADRs estão Accepted; as funcionalidades de gestão de evidências e os checkpoints posteriores continuam pendentes.
+**Etapa atual: cadastro web, ZIP/cifra e orquestração de arquivamento na camada de serviço, com Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. A orquestração ainda não está ligada a uma ação web; desarquivamento e revisão de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -52,6 +52,8 @@ OPENSPEC_TELEMETRY=0 openspec status --change add-forensic-evidence-registration
 Artefatos completos no OpenSpec não significam implementação completa do MVP. Execute os comandos Maven a partir da raiz do repositório, usando `./mvnw`: `./mvnw test` para testes e `./mvnw clean package` para gerar o pacote. Última validação em 2026-09-08: 2 testes, nenhuma falha ou erro, incluindo contexto Spring e página inicial renderizada.
 
 ## Checkpoints
+
+Revisão da orquestração completa: [regras de negócio, fluxo de exclusão e matriz de testes](docs/archiving-orchestration-review.md). Após a revisão, o usuário enviou `APROVADO: exclusão-fast-storage`; a implementação dos itens 5.1/5.3/5.4 e os testes com arquivos sintéticos temporários estão concluídos. A aprovação registrada em tasks.md cobre o fluxo apresentado; não autoriza operações destrutivas sobre evidências reais, commit ou merge.
 
 Checkpoint inicial concluído: mensagens recebidas do usuário em 2026-09-08, registradas em tasks.md:
 
@@ -103,15 +105,33 @@ O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execu
 
 ## Limitações e decisões aprovadas
 
+### Orquestração de arquivamento
+
+`ArchivingService.archive(Long evidenceId)` executa sincronamente o fluxo completo na camada de serviço. Exige EM_ANALISE, um .dd regular/legível dentro de fast e chamada fora de transação ativa. Rejeita estados bloqueados, paths externos, symlinks e artefato já arquivado, inclusive .zip.enc retornado da simulação. Usa uma exclusão mútua por id no serviço e atualização condicional de EM_ANALISE para ARQUIVANDO no SQLite para impedir processamento duplicado. Não foi adicionado endpoint ou botão funcional nesta tarefa.
+
+StorageCopyService cria um diretório de tentativa em `work/<id-interno>/copy-*` e copia por streaming sem sobrescrita. Só confirma a cópia após EOF, contagem de bytes, fechamento de ambos os streams e tamanho igual ao da origem. Antes de remover fast, confirma o path de work no SQLite e revalida tamanho, data de modificação e identidade dos arquivos de origem e destino. Não há novo hash. O .dd de work é preservado.
+
+O ZIP de cada tentativa recebe nome próprio `<nome>.dd.<uuid>.zip`; somente o ZIP concluído segue para a cifra. O contexto da mesma chamada registra cópia confirmada, path persistido, remoção de fast, ZIP concluído, cifra fechada, publicação, metadados confirmados e remoção do ZIP. Após todas essas etapas, a transação final confirma ARQUIVADO. O esquema de dados e os estados existentes foram preservados.
+
+Existe um único retry global: uma primeira falha retoma da etapa pendente; uma segunda falha, mesmo em outra etapa, encerra a operação. O estado permanece ARQUIVANDO durante a retomada. Falha após publicação repete somente persistência/limpeza, mantendo os mesmos parâmetros e bytes cifrados. Uma nova cifra, necessária após falha de finalização, usa outro IV e temporário. Na segunda falha, registra ERRO e mensagem sem segredos; se o banco impedir essa gravação, retorna IOException informando que ERRO não pôde ser confirmado. A escrita do erro terminal não inicia uma terceira tentativa de arquivamento.
+
+Limitações preservadas: sem recuperação após queda do processo e sem transação atômica entre SQLite/filesystem. Parciais de tentativas malsucedidas permanecem para avaliação humana, inclusive ZIP parcial quando a segunda tentativa consegue concluir; o ZIP completo utilizado na cifra é removido somente após sucesso e commit. Mudanças concorrentes por processos externos não são integralmente detectáveis, e a verificação de tamanho/metadados não substitui hash. Nenhum comando de arquivamento foi executado sobre os storages reais do projeto.
+
+Validação deste recorte: **163 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 37 de ArchivingService e 12 de StorageCopyService. A suíte existente também passou. Comando executado no ambiente, utilizando o agente Mockito já instalado:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
 ### CryptoService — recorte implementado
 
 `CryptoService.encrypt(Long evidenceId, Path zipPath)` cifra o ZIP já concluído pelo ZipService. Exige registro persistido em ARQUIVANDO, sem artefato arquivado, com currentPath apontando para a cópia `.dd` em work; o ZIP deve ser o arquivo irmão `<nome>.dd.zip`. Os diretórios são configuráveis por `forenstorage.storage.work` (padrão `storage/cold/work`) e `forenstorage.storage.archive` (padrão `storage/cold/archive`). O destino é `archive/<id-interno>/<nome>.dd.zip.enc`; o identificador textual da evidência não compõe diretórios.
 
 A cifra usa Java padrão, AES/GCM/NoPadding, IV aleatório novo de 12 bytes e tag de 128 bits. A senha contém 10 caracteres alfanuméricos gerados por SecureRandom; a chave AES de 256 bits deriva de PBKDF2WithHmacSHA256 com salt aleatório de 16 bytes e 600000 iterações, conforme ADR-0003. O formato versão 1 contém apenas os bytes cifrados seguidos da tag GCM de 16 bytes, sem cabeçalho ou AAD. IV, salt e chave são codificados em Base64 no SQLite; senha, número de iterações, versão do formato e paths também são persistidos. A versão identifica os algoritmos, tamanhos de chave/tag e organização descritos aqui.
 
-O serviço escreve por streaming em `.encrypt-*.part` dentro do diretório de destino, executa `doFinal`, fecha os streams e publica o `.zip.enc` sem sobrescrever destino existente. Depois confirma a transação SQLite dos metadados e paths; só então exclui o ZIP de work. A chamada rejeita uma transação externa ativa para impedir rollback posterior à exclusão. O `.dd` permanece preservado. O serviço mantém ARQUIVANDO: não implementa o fluxo completo, conclusão de status, retry automático, restauração ou descriptografia.
+O serviço escreve por streaming em `.encrypt-*.part` dentro do diretório de destino, executa `doFinal`, fecha os streams e publica o `.zip.enc` sem sobrescrever destino existente. Depois confirma a transação SQLite dos metadados e paths; só então exclui o ZIP de work. A chamada rejeita uma transação externa ativa para impedir rollback posterior à exclusão. O `.dd` permanece preservado. A chamada pública isolada mantém ARQUIVANDO e não executa retry. Na integração com ArchivingService, um contexto interno conserva etapas e parâmetros durante a retomada; somente o orquestrador conclui ARQUIVADO. Sem restauração ou descriptografia.
 
-Falhas de cifra/fechamento preservam ZIP, `.dd` e eventual temporário parcial. Falhas de persistência preservam ZIP e cifrado publicado; se o commit falhar, não há garantia de metadados utilizáveis para esse cifrado. Falha de exclusão preserva o cifrado e seus metadados já confirmados. Uma nova chamada não sobrescreve destino nem recifra registro com artefato publicado. A futura retomada da etapa pendente pertence ao item 5.4; não há recuperação automática após queda de processo. Validações recusam symlinks e ZIP de outro path, mas não garantem isolamento contra substituição concorrente por processos externos.
+Falhas de cifra/fechamento preservam ZIP, `.dd` e eventual temporário parcial. Falhas de persistência preservam ZIP e cifrado publicado; o orquestrador retém os parâmetros para a repetição da gravação na mesma chamada. Se a falha persistir ou o processo cair antes do commit, não há garantia de metadados utilizáveis para esse cifrado. Falha de exclusão preserva o cifrado e seus metadados já confirmados. Uma nova chamada pública isolada não sobrescreve destino nem recifra registro com artefato publicado. Não há recuperação automática após queda de processo. Validações recusam symlinks e ZIP de outro path, mas não garantem isolamento contra substituição concorrente por processos externos.
 
 **Limitação acadêmica:** a chave e a senha ficam no mesmo SQLite dos metadados. Base64 é codificação, não proteção; acesso ao banco compromete a confidencialidade do cifrado. O IV não é segredo, mas precisa corresponder ao arquivo. O `.dd` retido em work também permanece aberto. O serviço não registra segredos em logs, e o logging de parâmetros/extração JDBC e de conteúdo das entidades Hibernate está desativado. Não habilitar esses logs nem incluir chaves ou bancos contendo chaves no Git. As regras de ignore existentes foram preservadas; a autorização anterior de compartilhar dados não autoriza versionar as chaves desta etapa.
 

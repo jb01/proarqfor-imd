@@ -22,17 +22,19 @@
 
 ## 4. Checkpoint obrigatório antes de código de exclusão em fast
 
-- [ ] 4.1 Apresentar fluxo de cópia, fechamento, comparação de tamanho, persistência e exclusão, com matriz de falhas e testes em temporários; verificar material revisável e ausência de hash posterior.
-- [ ] 4.2 Parar e obter `APROVADO: exclusão-fast-storage`; verificar mensagem explícita antes de implementar qualquer exclusão em fast. Autorização de execução destrutiva permanece separada.
+- [x] 4.1 Apresentar fluxo de cópia, fechamento, comparação de tamanho, persistência e exclusão, com matriz de falhas e testes em temporários; verificar material revisável e ausência de hash posterior.
+  - Material submetido em docs/archiving-orchestration-review.md: regras, critério de exclusão, retomada, falhas, testes propostos e limites. Submissão não é aprovação do checkpoint 4.2.
+- [x] 4.2 Parar e obter `APROVADO: exclusão-fast-storage`; verificar mensagem explícita antes de implementar qualquer exclusão em fast. Autorização de execução destrutiva permanece separada.
+  - O usuário enviou nesta conversa `APROVADO: exclusão-fast-storage`, após a apresentação de docs/archiving-orchestration-review.md e da solicitação de autorização dos testes sintéticos temporários. Implementação e testes limitados ao fluxo revisado; nenhuma autorização para operar sobre dados reais, fazer commit ou merge.
 
 ## 5. Arquivamento síncrono após checkpoint
 
-- [ ] 5.1 Implementar cópia fast → work e exclusão condicionada ao sucesso aprovado; verificar cópia incompleta, fechamento falho, tamanho divergente, colisão e falha ao excluir, preservando a última cópia utilizável.
+- [x] 5.1 Implementar cópia fast → work e exclusão condicionada ao sucesso aprovado; verificar cópia incompleta, fechamento falho, tamanho divergente, colisão e falha ao excluir, preservando a última cópia utilizável.
 - [x] 5.2 Implementar ZIP e cifra conforme ADR-0003 aprovado; verificar senha de 10 alfanuméricos, chave válida, parâmetros persistidos, IV novo e preservação do ZIP na falha de finalização.
   - ZIP e CryptoService concluídos nos recortes solicitados; validação da cifra registrada abaixo em 2026-09-09.
-- [ ] 5.3 Implementar publicação .zip.enc, persistência de metadados e exclusão do ZIP aberto após sucesso; verificar arquivo final, path, senha/IV e ARQUIVADO, sem excluir .dd de trabalho automaticamente.
-  - Publicação, metadados e exclusão condicionada do ZIP implementados no CryptoService; conclusão em ARQUIVADO e integração com o fluxo completo permanecem pendentes.
-- [ ] 5.4 Implementar uma repetição por etapa segura e ERRO na segunda falha; verificar sucesso na segunda tentativa, limite de duas tentativas, retomada após origem removida e falha de SQLite/limpeza após cifra publicada.
+- [x] 5.3 Implementar publicação .zip.enc, persistência de metadados e exclusão do ZIP aberto após sucesso; verificar arquivo final, path, senha/IV e ARQUIVADO, sem excluir .dd de trabalho automaticamente.
+  - Integração e conclusão de ARQUIVADO implementadas e testadas na camada de serviço; nenhuma ação web adicionada.
+- [x] 5.4 Implementar uma repetição por etapa segura e ERRO na segunda falha; verificar sucesso na segunda tentativa, limite de duas tentativas, retomada após origem removida e falha de SQLite/limpeza após cifra publicada.
 
 ## 6. Desarquivamento simulado
 
@@ -49,7 +51,41 @@
 
 ## Registro de aprovações
 
+## Revisão prévia da orquestração — registro histórico antes da aprovação
+
+O usuário solicitou orquestrar o arquivamento completo com retry único e ERRO, listar regras de negócio, exigir testes adequados, proibir alterações fora do escopo e atualizar documentação, sem commit. Preparado docs/archiving-orchestration-review.md e adicionado link no README. O documento cobre cópia/fechamentos/tamanho/commit antes de exclusão, uma retomada global da etapa segura e adequação do CryptoService para persistência/limpeza após publicação sem recifrar. Contém matriz de testes JUnit 5, proposta de execução somente em @TempDir/SQLite temporário e proibições explícitas de alterações alheias ao recorte.
+
+Item 4.1 concluído pela submissão do material; 4.2, 5.1, 5.3 e 5.4 permanecem pendentes. Não foi recebida a mensagem `APROVADO: exclusão-fast-storage`; aprovações anteriores não foram reinterpretadas. Nenhum código Java ou teste foi alterado/executado nesta revisão. Aguardada aprovação específica do fluxo e autorização da execução dos testes sintéticos descritos. Nenhum commit realizado.
+
 Após a revisão do ZipService, o usuário respondeu nesta conversa: `Aprovado.`. Essa mensagem aprova somente o recorte apresentado; não equivale a `APROVADO: merge` nem aprova exclusão em fast.
+
+Após a apresentação do CryptoService e dos resultados de validação, o usuário respondeu nesta conversa: `aprovado`. Registrada a aprovação da revisão desse recorte. A mensagem não equivale a `APROVADO: merge` nem autoriza exclusão em fast, commit, push ou implementação das próximas tarefas.
+
+## Orquestração completa após aprovação de exclusão-fast-storage
+
+Na sequência da revisão documentada em docs/archiving-orchestration-review.md, o usuário enviou literalmente `APROVADO: exclusão-fast-storage`. A aprovação foi recebida antes de qualquer código desta etapa que excluísse a origem em fast. A execução foi limitada aos testes com arquivos sintéticos e SQLite temporário apresentados para aprovação; nenhum arquivo real do projeto foi excluído e nenhum commit foi feito.
+
+Implementados ArchivingService.archive(Long) e StorageCopyService. A orquestração exige EM_ANALISE e .dd elegível em fast; confirma ARQUIVANDO antes da cópia, confirma o path de work antes de excluir fast e conclui ARQUIVADO somente após cifra/publicação/metadados/exclusão do ZIP. Há bloqueio por id na instância e uma atualização condicional no repositório para disputar o início sem duplicá-lo. Não há transação externa abrangendo as operações de arquivo.
+
+A cópia exige EOF, contagem de bytes, fechamento dos dois streams e tamanho confirmado. A exclusão revalida origem/destino por tamanho, data de modificação, identidade de arquivo e paths sem symlink. Tentativas usam diretórios e nomes próprios; colisões não são sobrescritas. ZIP parcial é preservado e a segunda tentativa usa outro nome, sem recópia do .dd já confirmado. Nenhum hash foi recalculado.
+
+CryptoService conserva etapas de cifra fechada/publicação/persistência/limpeza e seus parâmetros apenas no contexto da chamada síncrona. Metadados ou limpeza podem ser repetidos sem recifrar o artefato publicado. O contrato público isolado permanece compatível com os testes anteriores. Uma nova cifra após falha de finalização usa IV novo e outro temporário. Arrays de chave/senha são limpos ao encerrar o contexto; não há novos logs de segredos nem arquivos de chave no Git.
+
+O orçamento é global: primeira tentativa e uma retomada. Segunda falha, ainda que em outra etapa, grava ERRO e mensagem sem causas que possam expor segredos. Falha do banco ao gravar ERRO retorna IOException explícita e não declara estado confirmado. A gravação terminal de ERRO não é uma terceira tentativa de arquivamento.
+
+Testes realmente executados com o agente Mockito já disponível, sem mudança de dependências:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' -Dtest=CryptoServiceTest,ZipServiceTest test
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' -Dtest=ArchivingServiceTest,StorageCopyServiceTest test
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Resultados: respectivamente 26, 49 e 163 testes, todos com BUILD SUCCESS, 0 falhas, 0 erros e 0 ignorados. São 37 testes da orquestração e 12 da cópia. Cobertura inclui ordem com leitura SQLite por conexão física antes das exclusões; primeira e segunda falhas em dez etapas; falhas em etapas diferentes; rollback de commit de início/path/finalização; falha SQLite real por trigger e retomada dos mesmos bytes/IV; falha SQLite ao registrar ERRO; ZIP parcial com fast já removido; IV novo; estados bloqueados; paths inválidos/symlinks; cópia incompleta/fechamentos/tamanho/colisão; origem ou cópia alterada antes da remoção; chamadas concorrentes; ausência de segredos nos logs da operação bem-sucedida. Arquivos e bancos exclusivamente temporários e sintéticos.
+
+Limitações mantidas: sem atomicidade SQLite/filesystem, proteção integral contra processos externos ou recuperação pós-crash. Parciais e .dd de trabalho ficam preservados; mesmo um arquivamento que conclui na segunda tentativa pode deixar parcial da primeira para avaliação humana. Se a persistência de metadados falhar definitivamente, o ZIP é retido e o cifrado não tem garantia de metadados recuperáveis. Chave/senha junto do SQLite continuam uma limitação acadêmica. Não foram implementados endpoints/telas, desarquivamento, restauração/descriptografia, jobs, novas transições ou dependências.
+
+Checklist: 4.2 aprovado; 5.1/5.3/5.4 concluídos; testes executados; regras e restrições documentadas; README, arquitetura e planejamento atualizados. Progresso: 12/26 tarefas concluídas. Recorte encerrado para revisão sem commit, push, merge, Docker ou deploy. Checkpoint de merge permanece pendente; esta apresentação não representa merge ou entrega do MVP completo.
 
 ## CryptoService — 2026-09-09
 

@@ -34,4 +34,4 @@ Sem login, autenticação, autorização, perfis, API REST, microserviços, nuve
 
 ## Review gate
 
-Checkpoint inicial concluído em 2026-09-08: o usuário enviou `APROVADO: plano`, `APROVADO: ADR-0001`, `APROVADO: ADR-0002` e `APROVADO: ADR-0003`. O plano apresentado, incluindo as interpretações em design.md, está aprovado; evidências em tasks.md. Implementação não iniciada. Dependências específicas e checkpoints de exclusão-fast-storage e merge permanecem pendentes.
+Checkpoint inicial concluído em 2026-09-08: o usuário enviou `APROVADO: plano`, `APROVADO: ADR-0001`, `APROVADO: ADR-0002` e `APROVADO: ADR-0003`. O plano apresentado, incluindo as interpretações em design.md, está aprovado; evidências em tasks.md. Posteriormente, o usuário enviou `APROVADO: exclusão-fast-storage` após revisão do fluxo e testes propostos. Cadastro, ZIP/cifra e orquestração foram implementados por recortes, com testes sintéticos temporários. Merge e demais checkpoints pendentes seguem registrados em tasks.md.

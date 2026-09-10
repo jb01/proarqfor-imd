@@ -26,6 +26,11 @@ public class ZipService {
      * e qualquer ZIP parcial; sua existência não indica conclusão da etapa.
      */
     public Path compress(Path source) throws IOException {
+        return compress(source, source.resolveSibling(source.getFileName() + ".zip"));
+    }
+
+    // The orchestrator supplies a fresh sibling for each attempt, preserving partial ZIPs.
+    Path compress(Path source, Path destination) throws IOException {
         Objects.requireNonNull(source, "O caminho do arquivo é obrigatório");
         Path absolute = source.toAbsolutePath();
         Path component = absolute.getRoot();
@@ -50,7 +55,11 @@ public class ZipService {
         if (!Files.isRegularFile(real, LinkOption.NOFOLLOW_LINKS) || !Files.isReadable(real)) {
             throw new IOException("A evidência deve ser um arquivo regular e legível: " + source);
         }
-        Path destination = real.resolveSibling(real.getFileName() + ".zip");
+        destination = destination.toAbsolutePath().normalize();
+        if (!destination.getParent().equals(real.getParent())
+                || !destination.getFileName().toString().endsWith(".zip")) {
+            throw new IllegalArgumentException("O ZIP deve ser um arquivo irmão da cópia de trabalho");
+        }
         try (var input = Files.newInputStream(real);
              var zip = new ZipOutputStream(Files.newOutputStream(destination, StandardOpenOption.CREATE_NEW,
                      StandardOpenOption.WRITE))) {

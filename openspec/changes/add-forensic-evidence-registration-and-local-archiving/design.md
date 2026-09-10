@@ -1,6 +1,6 @@
 ## Context
 
-Ver proposal.md para motivação e docs/architecture.md para componentes e fluxo. Plano aprovado em 2026-09-08; ADR-0001, ADR-0002 e ADR-0003 estão Accepted. Implementação ainda não iniciada. Dependências específicas e checkpoints posteriores continuam pendentes; evidências em tasks.md.
+Ver proposal.md para motivação e docs/architecture.md para componentes e fluxo. Plano aprovado em 2026-09-08; ADR-0001, ADR-0002 e ADR-0003 estão Accepted. Cadastro, ZIP/cifra e orquestração foram implementados por recortes. O usuário aprovou explicitamente exclusão-fast-storage após revisão do fluxo; evidências e resultados estão em tasks.md. Checkpoints de merge e demonstração permanecem pendentes.
 
 ## Goals / Non-Goals
 
@@ -36,6 +36,8 @@ Aplicar ADR-0001/0002/0003, aprovados em 2026-09-08, na futura implementação. 
 
 ### Arquivamento e falhas
 
+Implementado na camada de serviço por ArchivingService/StorageCopyService e adaptação de ZipService/CryptoService. O [documento de revisão](../../../docs/archiving-orchestration-review.md) registra o fluxo aprovado, critérios de exclusão, matriz de testes e proibição de alterações fora do recorte. A atualização condicional do estado inicial e o bloqueio por id impedem início duplicado; o contexto de etapas fica na chamada síncrona, sem novos estados persistidos. Os nomes de tentativa preservam parciais e não sobrescrevem artefatos desconhecidos. A interface web permanece fora desta implementação de orquestração.
+
 Seguir as seis etapas de docs/architecture.md. Sucesso da cópia exige leitura/escrita concluídas, fechamento sem erro e mesmo tamanho; nenhum novo hash. Persistir localização de trabalho após cópia confirmada e antes de excluir fast. Se excluir fast falhar, não fingir sucesso: retentar com destino já confirmado. Um marcador de etapa da operação síncrona distingue parcial de completo; não confiar apenas em existência de arquivo. Não exigir reinício integral depois de cada falha.
 
 No máximo duas tentativas totais; a segunda só ocorre se a primeira falhar. Cópia parcial nunca autoriza exclusão; segunda tentativa usa origem preservada. Depois da remoção de fast, segunda tentativa usa .dd de work. Falha no ZIP preserva .dd. Falha na cifra preserva ZIP; nova cifra usa novo IV e destino temporário separado. .zip.enc só é publicado após tag GCM finalizada e fechamento. Se publicação já ocorreu e falha a persistência ou limpeza do ZIP, repetir só a etapa pendente, sem cifrar de novo artefato concluído. Persistir metadados antes de remover ZIP; ARQUIVADO somente quando também removido o ZIP. Não sobrescrever destinos desconhecidos. Manter .dd de work, sem limpeza adicional automática.
@@ -65,4 +67,4 @@ Não há migração, deploy ou rollback a executar agora. Após aprovações: im
 
 ## Resultado da revisão
 
-Plano e ADRs aprovados pelo usuário em 2026-09-08, incluindo exclusão somente do registro, status controlado pelas ações, path sob fast, derivação de senha, retenção do .dd de trabalho e bloqueio de re-arquivamento do .zip.enc desarquivado. Não há requisito de restauração real implícito nessas decisões. Aprovações de dependências específicas, exclusão-fast-storage e merge continuam pendentes.
+Plano e ADRs aprovados pelo usuário em 2026-09-08, incluindo exclusão somente do registro, status controlado pelas ações, path sob fast, derivação de senha, retenção do .dd de trabalho e bloqueio de re-arquivamento do .zip.enc desarquivado. Não há requisito de restauração real implícito nessas decisões. O checkpoint exclusão-fast-storage foi posteriormente aprovado para o fluxo revisado; a orquestração e os testes sintéticos foram concluídos. Merge e checkpoints restantes continuam pendentes, conforme tasks.md.
