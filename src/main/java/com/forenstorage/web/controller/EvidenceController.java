@@ -6,6 +6,7 @@ import com.forenstorage.web.repository.EvidenceRepository;
 import com.forenstorage.web.service.EvidenceRegistrationService;
 import com.forenstorage.web.service.ArchivingService;
 import com.forenstorage.web.service.UnarchivingService;
+import com.forenstorage.web.service.EvidenceRemovalService;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -28,13 +29,16 @@ public class EvidenceController {
     private final EvidenceRegistrationService registration;
     private final ArchivingService archiving;
     private final UnarchivingService unarchiving;
+    private final EvidenceRemovalService removal;
 
     public EvidenceController(EvidenceRepository repository, EvidenceRegistrationService registration,
-                              ArchivingService archiving, UnarchivingService unarchiving) {
+                              ArchivingService archiving, UnarchivingService unarchiving,
+                              EvidenceRemovalService removal) {
         this.repository = repository;
         this.registration = registration;
         this.archiving = archiving;
         this.unarchiving = unarchiving;
+        this.removal = removal;
     }
 
     @GetMapping
@@ -86,6 +90,7 @@ public class EvidenceController {
             model.addAttribute("evidence", evidence);
             model.addAttribute("canArchive", canArchive(evidence));
             model.addAttribute("canUnarchive", canUnarchive(evidence));
+            model.addAttribute("canRemove", EvidenceRemovalService.canRemove(evidence.getStatus()));
         } catch (DataAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Não foi possível consultar a evidência; o estado atual não pôde ser confirmado.");
@@ -138,6 +143,37 @@ public class EvidenceController {
             redirect.addFlashAttribute("error", "Falha de persistência: não foi possível confirmar o desarquivamento. "
                     + "Consulte o estado atual da evidência.");
         } catch (IllegalArgumentException | IllegalStateException | IOException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/evidences/" + id;
+    }
+
+    @GetMapping("/{id}/remove")
+    public String removalConfirmation(@PathVariable Long id, Model model) {
+        try {
+            Evidence evidence = findEvidence(id);
+            model.addAttribute("evidence", evidence);
+            model.addAttribute("canRemove", EvidenceRemovalService.canRemove(evidence.getStatus()));
+            return "evidences/remove";
+        } catch (DataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Não foi possível consultar a evidência para confirmação.");
+        }
+    }
+
+    @PostMapping("/{id}/remove")
+    public String remove(@PathVariable Long id,
+                         @RequestParam(defaultValue = "") String evidenceIdentifier,
+                         @RequestParam(defaultValue = "false") boolean confirmed,
+                         RedirectAttributes redirect) {
+        try {
+            findEvidence(id);
+            removal.remove(id, evidenceIdentifier, confirmed);
+            redirect.addFlashAttribute("success", "Registro removido. Os arquivos físicos foram preservados.");
+            return "redirect:/evidences";
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute("error", "Não foi possível confirmar a remoção do registro. Consulte a listagem.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
             redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/evidences/" + id;

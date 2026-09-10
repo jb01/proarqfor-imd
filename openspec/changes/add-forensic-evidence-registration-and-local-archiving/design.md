@@ -18,6 +18,8 @@ Listagem tem Adicionar e registros clicáveis. Cadastro recebe identificador, pa
 
 Decisão aprovada no plano: edição de status ocorre pelas ações Arquivar e Desarquivar e pelas transições operacionais correspondentes, sem seletor livre ou avanço manual para ARQUIVADO. Remover pede “Tem certeza que deseja deletar a evidência xxxxx/2026?” e remove só o registro, inclusive HASH_DIVERGENTE/ERRO; não apaga arquivo físico. Cancelamento preserva tudo. Impedir remoção durante operações em curso. Essas interpretações integram o plano aprovado em 2026-09-08.
 
+Remoção implementada por EvidenceRemovalService: GET /evidences/{id}/remove apresenta confirmação com identificador escapado e Cancelar; POST exige confirmação explícita e identificador correspondente. DELETE condicional em transação inclui id, identificador e os quatro estados removíveis, impedindo remoção após claim de uma operação concorrente. Se a remoção vence, o claim existente não encontra registro elegível e não inicia movimentação. O serviço não acessa arquivos. A confirmação explicita que os metadados criptográficos também serão removidos. Falha SQLite não produz mensagem de sucesso.
+
 ### Estados
 
 | Origem | Destino | Gatilho |

@@ -45,6 +45,9 @@
         Retorno simulado: o arquivo continua cifrado e não pode ser arquivado novamente.
         Remova o registro e cadastre um novo .dd para iniciar outro arquivamento.</p>
     <div class="actions">
+        <a id="remove-link" class="button" th:if="${canRemove}"
+           th:href="@{/evidences/{id}/remove(id=${evidence.id})}">Remover registro</a>
+        <button id="remove-button" th:unless="${canRemove}" type="button" disabled>Remover registro indisponível durante operação</button>
         <form method="post" th:action="@{/evidences/{id}/archive(id=${evidence.id})}">
             <button id="archive-button" type="submit" th:disabled="${!canArchive}" aria-describedby="actions-help">Arquivar</button>
         </form>

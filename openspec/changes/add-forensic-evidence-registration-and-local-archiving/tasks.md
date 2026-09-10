@@ -1,12 +1,12 @@
 ## Situação atual — checklist reconciliado com a implementação
 
-19 das 26 tarefas numeradas estão integralmente concluídas; 7 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
+20 das 26 tarefas numeradas estão integralmente concluídas; 6 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
 
 Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade e fluxos nos serviços; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface; desarquivamento simulado integrado à interface, com movimento do cifrado, transições, bloqueios e ERRO. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
 
-Pendências práticas principais: implementar remoção confirmada somente do registro, validar hook quando autorizado e realizar demonstração/revisão final.
+Remoção confirmada somente do registro concluída. Pendências práticas principais: validar hook quando autorizado e realizar demonstração/revisão final.
 
-Última execução comprovada: 230 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da task 2.3 abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
+Última execução comprovada: 247 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da task 3.4 abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
 
 ## 1. Revisão humana antes de qualquer implementação
 
@@ -34,8 +34,8 @@ Pendências práticas principais: implementar remoção confirmada somente do re
   - Matriz completa testada na entidade; cadastro, arquivamento e desarquivamento implementados nos serviços, com bloqueios para todos os estados inelegíveis e falhas operacionais. Não há seletor livre de status.
 - [x] 3.3 Implementar listagem, Adicionar, cadastro/Cancelar/Cadastrar e detalhes com todos os campos; verificar navegação MVC e erros de formulário, usando apenas ferramentas já aprovadas.
   - Navegação, cadastro, listagem e detalhes completos, incluindo senha persistida com escape HTML e indicação de ausência. Arquivar conectado ao ArchivingService por POST, com mensagens e bloqueios testados. Desarquivar conectado ao serviço de 6.1/6.2, com indicação de retorno cifrado, bloqueios e testes MVC; não há edição arbitrária de status.
-- [ ] 3.4 Implementar remoção somente de registro com confirmação e cancelamento; verificar registro removido, arquivo preservado e bloqueio durante operação em curso.
-  - Pendente: não há fluxo de remoção implementado; incluir confirmação com identificador, cancelamento, preservação dos arquivos e bloqueio durante operação.
+- [x] 3.4 Implementar remoção somente de registro com confirmação e cancelamento; verificar registro removido, arquivo preservado e bloqueio durante operação em curso.
+  - Concluído: confirmação com identificador escapado, Cancelar sem mutação, POST com confirmação explícita e exclusão condicional no SQLite. Preserva arquivos; permite EM_ANALISE, ARQUIVADO, HASH_DIVERGENTE e ERRO; bloqueia ARQUIVANDO/DESARQUIVANDO inclusive após confirmação desatualizada. 17 novos testes integrados passaram.
 
 ## 4. Checkpoint obrigatório antes de código de exclusão em fast
 
@@ -72,6 +72,24 @@ Pendências práticas principais: implementar remoção confirmada somente do re
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+## Remoção confirmada somente do registro — task 3.4 — 2026-09-10
+
+Autorização deste recorte: o usuário solicitou implementar confirmação com identificador, cancelamento, exclusão somente do cadastro, preservação dos arquivos e bloqueio durante operações; determinou parar após a conclusão e não fazer commit. Essa solicitação não aprova merge ou ações sobre dados reais.
+
+Implementado EvidenceRemovalService, DELETE condicional no repositório e fluxo MVC GET/POST /evidences/{id}/remove. A página exibe o identificador com escape HTML, explica a remoção dos metadados (inclusive senha e parâmetros criptográficos), oferece Cancelar por navegação sem mutação e exige confirmação explícita no POST. O id e o identificador precisam corresponder ao mesmo registro. A exclusão permite apenas EM_ANALISE, ARQUIVADO, HASH_DIVERGENTE e ERRO; o predicado é avaliado no próprio DELETE, competindo com os claims existentes de arquivamento/desarquivamento. Não há acesso ao filesystem no serviço de remoção, cascata de entidades, alteração de status ou novo hash. Remoção bem-sucedida redireciona à lista; falhas de SQLite recebem mensagem sanitizada; id inexistente retorna 404.
+
+Validação executada com JUnit 5, SQLite e arquivos sintéticos temporários: 17 novos testes integrados MVC/serviço/repositório cobrem os seis estados, confirmação GET sem exclusão, cancelamento, remoção da listagem, preservação dos bytes em fast/work/archive, confirmação ausente/falsa, identificador incorreto ou de outro registro, parâmetros extras, escape HTML, remoção repetida/id ausente e rollback por falha SQLite. Os dois ordenamentos da disputa com claims de arquivamento e desarquivamento foram verificados deterministicamente: claim anterior bloqueia remoção (inclusive chamada direta ao serviço); remoção anterior faz o claim retornar zero. Não foi feito teste de carga com threads nem sessão manual no navegador.
+
+Comando executado:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Resultado: BUILD SUCCESS, 247 testes, 0 falhas, 0 erros e 0 ignorados. A remoção apaga também os metadados criptográficos do cadastro; os arquivos retidos não recuperam esses metadados automaticamente. Esse efeito está explícito na confirmação. Sem recuperação/restauração ou limpeza de arquivos adicionada.
+
+Task 3.4 concluída; total 20/26. Nenhuma dependência, serviço de movimentação/cifra, estado, hook, regra Git ou dado real alterado. Sem Docker, commit, push ou merge. As demais tarefas e a aprovação final de merge permanecem pendentes; encerrado somente este recorte para revisão.
 
 ## Banco e persistência após reinício — task 2.3
 

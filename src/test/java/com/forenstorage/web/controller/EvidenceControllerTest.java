@@ -35,6 +35,7 @@ class EvidenceControllerTest {
     @MockitoBean EvidenceRegistrationService registration;
     @MockitoBean ArchivingService archiving;
     @MockitoBean UnarchivingService unarchiving;
+    @MockitoBean com.forenstorage.web.service.EvidenceRemovalService removal;
     private Evidence archivedEvidence() {
         Evidence e = evidence(EvidenceStatus.ARQUIVADO);
         e.setCurrentPath("storage/cold/archive/7/test.zip.enc");

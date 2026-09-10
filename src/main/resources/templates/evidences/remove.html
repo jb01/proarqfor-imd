@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Remover registro — ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/evidences.css}">
+</head>
+<body><main>
+    <h1>Remover registro</h1>
+    <p>Tem certeza que deseja deletar a evidência <strong th:text="${evidence.evidenceIdentifier}"></strong>?</p>
+    <p>Somente o cadastro e seus metadados, incluindo senha e parâmetros criptográficos, serão removidos.
+        Os arquivos físicos permanecerão nos diretórios atuais.</p>
+    <p th:unless="${canRemove}" class="alert" role="alert">Remoção bloqueada: arquivamento ou desarquivamento em curso.</p>
+    <form method="post" th:action="@{/evidences/{id}/remove(id=${evidence.id})}">
+        <input type="hidden" name="evidenceIdentifier" th:value="${evidence.evidenceIdentifier}">
+        <div class="actions">
+            <a id="cancel-removal" class="button" th:href="@{/evidences/{id}(id=${evidence.id})}">Cancelar</a>
+            <button id="confirm-removal" type="submit" name="confirmed" value="true"
+                    th:disabled="${!canRemove}">Confirmar remoção do registro</button>
+        </div>
+    </form>
+</main></body>
+</html>

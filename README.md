@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: cadastro, arquivamento e desarquivamento simulado integrados à interface, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Remoção de registros e revisão de merge continuam pendentes.
+**Etapa atual: cadastro, arquivamento e desarquivamento simulado integrados à interface, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Remoção confirmada de registros implementada; demonstração e revisão final de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -114,6 +114,14 @@ Com aprovação humana, restaurar no editor o matcher `^ARQFOR_HOOK_DESABILITADO
 O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execução, terminais externos ou ferramentas fora da cobertura. A implementação deve ter suas próprias condições de cópia segura. O hook não foi habilitado nem executado e sua eficácia em integração ainda precisa ser confirmada.
 
 ## Limitações e decisões aprovadas
+
+### Remover registro pela interface
+
+Nos detalhes, Remover registro abre uma confirmação com o identificador. Cancelar retorna aos detalhes sem alteração; Confirmar envia POST /evidences/{id}/remove e remove somente o cadastro. Arquivos de fast, work e archive permanecem intactos. A confirmação informa que senha e parâmetros criptográficos também saem do banco junto com o registro; não há recuperação automática desses metadados.
+
+EM_ANALISE, ARQUIVADO, HASH_DIVERGENTE e ERRO permitem remoção. ARQUIVANDO e DESARQUIVANDO bloqueiam a ação na tela e no DELETE condicional do SQLite, inclusive se uma operação começou depois que a confirmação foi aberta. O POST exige confirmação explícita e identificador correspondente ao id; GET e cancelamento não removem dados. Sucesso retorna à listagem; falha de banco recebe mensagem sanitizada; registro inexistente retorna 404.
+
+Validação deste recorte: **247 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 17 novos testes integrados de remoção, com arquivos sintéticos e SQLite temporário. Cobrem estados, cancelamento, preservação de arquivos, confirmação inválida/desatualizada, disputa ordenada com início de operações, falha SQLite e escape HTML. Não houve sessão manual de navegador ou alteração de dados reais. Resultados em tasks.md.
 
 ### Desarquivar pela interface
 

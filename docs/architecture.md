@@ -50,6 +50,10 @@ UnarchivingService implementa o desarquivamento simulado na camada de serviço; 
 
 Falha operacional termina em ERRO sem retry; se o movimento já terminou, a transação de erro registra o novo currentPath. Quando SQLite também impede ERRO, retorna falha explícita e preserva o cifrado em fast, podendo restar DESARQUIVANDO com path antigo. Parciais do movimento não são removidos automaticamente. Sem atomicidade entre banco/filesystem ou recuperação pós-crash; não há limpeza de work nesta operação.
 
+## Remoção de cadastro
+
+EvidenceController apresenta confirmação com identificador em GET /evidences/{id}/remove e oferece Cancelar sem mutação. POST confirmado chama EvidenceRemovalService; uma transação executa DELETE condicionado ao id, identificador e estados EM_ANALISE/ARQUIVADO/HASH_DIVERGENTE/ERRO. O predicado disputa com as atualizações condicionais de início das operações, bloqueando exclusão em ARQUIVANDO/DESARQUIVANDO mesmo com formulário desatualizado. Não há chamadas ao filesystem: arquivos permanecem; metadados, senha e parâmetros criptográficos do registro são removidos, como informado na confirmação.
+
 ## Decisões e limites
 
 Ver [ADR-0001](adr/0001-sha-256-e-hash-divergente.md), [ADR-0002](adr/0002-storages-locais-e-sqlite.md) e [ADR-0003](adr/0003-zip-e-aes-gcm.md). Serviços síncronos podem manter a requisição aberta; o MVP não promete progresso em tempo real, recuperação automática após interrupção de processo ou desempenho de storage físico. Não há REST nem sistemas externos. O hook protege chamadas shell cobertas pelo Codex, não as operações internas da aplicação.
