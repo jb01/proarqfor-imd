@@ -4,13 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ForenStorage</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
 </head>
 <body>
-    <main>
+<main class="home">
+    <header class="home-header">
         <h1>ForenStorage</h1>
-        <h2>Sistema de Gestão de Armazenamento de Evidências Forenses Digitais</h2>
-        <p>Aplicação inicial em funcionamento.</p>
-        <p><a th:href="@{/evidences}">Gerenciar evidências</a></p>
-    </main>
+        <p class="subtitle">
+            Sistema de Gestão de Armazenamento de Evidências Forenses Digitais
+        </p>
+    </header>
+
+    <section class="welcome-card">
+        <h2>Bem-vindo</h2>
+
+        <p>
+            Gerencie o armazenamento e o ciclo de vida de evidências
+            digitais de forma organizada e segura.
+        </p>
+
+        <a class="button primary" th:href="@{/evidences}">
+            Gerenciar evidências
+        </a>
+    </section>
+</main>
 </body>
 </html>
