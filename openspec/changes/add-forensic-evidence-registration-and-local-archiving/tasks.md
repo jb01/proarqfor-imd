@@ -29,6 +29,7 @@
 
 - [ ] 5.1 Implementar cópia fast → work e exclusão condicionada ao sucesso aprovado; verificar cópia incompleta, fechamento falho, tamanho divergente, colisão e falha ao excluir, preservando a última cópia utilizável.
 - [ ] 5.2 Implementar ZIP e cifra conforme ADR-0003 aprovado; verificar senha de 10 alfanuméricos, chave válida, parâmetros persistidos, IV novo e preservação do ZIP na falha de finalização.
+  - Recorte ZIP concluído em 2026-09-09 por solicitação explícita do usuário: ZipService e testes. O item completo permanece pendente de cifra e suas validações.
 - [ ] 5.3 Implementar publicação .zip.enc, persistência de metadados e exclusão do ZIP aberto após sucesso; verificar arquivo final, path, senha/IV e ARQUIVADO, sem excluir .dd de trabalho automaticamente.
 - [ ] 5.4 Implementar uma repetição por etapa segura e ERRO na segunda falha; verificar sucesso na segunda tentativa, limite de duas tentativas, retomada após origem removida e falha de SQLite/limpeza após cifra publicada.
 
@@ -46,6 +47,16 @@
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+## ZipService isolado — 2026-09-09
+
+Implementado somente ZipService.compress(Path), conforme solicitação do usuário para compactar o .dd em storage/cold/work e parar sem criptografar ou excluir ZIP. Raiz configurável por forenstorage.storage.work (padrão storage/cold/work). Recebe a cópia .dd já existente em work, inclusive em subdiretório próprio da evidência, e cria arquivo irmão <nome>.dd.zip com uma única entrada contendo o nome original. Usa streaming da biblioteca padrão Java e retorna o path somente após fechamento bem-sucedido, preservando o .dd. CREATE_NEW recusa sobrescrita de destino existente. Rejeita caminhos externos, symlinks na origem, extensão incorreta e arquivos não regulares/ilegíveis. Não adiciona dependências nem integra ações de arquivamento, banco ou estados.
+
+Validação executada: `./mvnw -Dtest=ZipServiceTest test` — BUILD SUCCESS; 7 testes, 0 falhas, 0 erros, 0 ignorados. Verificados ZIP legível com diretório central, entrada única/nome/tamanho e bytes binários exatos em 100000 bytes, arquivo vazio, origem inexistente sem ZIP residual, preservação da origem, colisão sem sobrescrita, escape de work, extensão/diretório inválidos e symlinks de origem/destino. Somente dados sintéticos em diretórios temporários. Suíte completa não reexecutada nesta etapa.
+
+Limitações: falha durante escrita/fechamento pode deixar ZIP parcial, que é preservado e não representa sucesso; retry e acompanhamento de etapa permanecem no item 5.4. Validações de path não garantem proteção contra substituição concorrente por processos externos. Não houve criptografia, exclusão de ZIP/.dd, recálculo de hash, movimentação de fast, alteração de hook, Docker, commit, push ou merge. Checklist deste recorte: serviço implementado, testes solicitados executados e resultados registrados; item amplo 5.2 e checkpoints posteriores continuam pendentes. Registro submetido para revisão, sem representar entrega/merge do MVP.
+
+## Evidências das aprovações iniciais
 
 Em 2026-09-07, o usuário autorizou registrar as interpretações consultadas como propostas para revisão. Em 2026-09-08, o usuário aprovou explicitamente o plano e os três ADRs nesta conversa:
 
