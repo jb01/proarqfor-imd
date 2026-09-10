@@ -1,15 +1,198 @@
-body { font-family: system-ui, sans-serif; margin: 0; color: #182536; background: #f4f6f8; }
-main { max-width: 1050px; margin: 2rem auto; padding: 2rem; background: white; border-radius: .5rem; }
-a { color: #174e87; }
-nav, .actions { display: flex; gap: 1rem; align-items: center; margin: 1.5rem 0; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: .8rem; border-bottom: 1px solid #ccd4dd; text-align: left; overflow-wrap: anywhere; }
-label { display: block; margin-top: 1rem; font-weight: 600; }
-input { box-sizing: border-box; width: 100%; padding: .7rem; margin: .4rem 0; }
-button, .button { padding: .7rem 1rem; border-radius: .3rem; }
-button:disabled { cursor: not-allowed; color: #555; background: #eee; }
-.alert { padding: 1rem; border: 2px solid #9c4500; background: #fff0d6; color: #652b00; }
-.success { padding: 1rem; background: #e4f5e8; }
-dt { font-weight: 700; margin-top: 1rem; }
-dd { margin: .4rem 0; overflow-wrap: anywhere; }
-@media (max-width: 700px) { main { margin: 0; padding: 1rem; } .table-container { overflow-x: auto; } }
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    color: #182536;
+    background: #f4f6f8;
+    line-height: 1.5;
+}
+
+main {
+    max-width: 1050px;
+    margin: 2.5rem auto;
+    padding: 2.5rem;
+    background: #fff;
+    border: 1px solid #e1e6eb;
+    border-radius: .6rem;
+    box-shadow: 0 2px 10px rgba(24, 37, 54, .07);
+}
+
+h1 {
+    margin-top: 0;
+    margin-bottom: .5rem;
+}
+
+a {
+    color: #174e87;
+}
+
+a:hover {
+    color: #123e6b;
+}
+
+nav,
+.actions {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: .5rem;
+}
+
+th,
+td {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid #d9e0e6;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+th {
+    background: #f4f6f8;
+    color: #34495e;
+    font-size: .9rem;
+    font-weight: 600;
+}
+
+tbody tr:hover {
+    background: #f8fafc;
+}
+
+td a {
+    font-weight: 600;
+}
+
+label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: .7rem .8rem;
+    margin: .4rem 0;
+    border: 1px solid #c8d1da;
+    border-radius: .3rem;
+    font: inherit;
+}
+
+input:focus {
+    outline: 2px solid #b8d0e6;
+    border-color: #174e87;
+}
+
+button,
+.button {
+    display: inline-block;
+    padding: .7rem 1rem;
+    border: 1px solid #174e87;
+    border-radius: .3rem;
+    background: #174e87;
+    color: white;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+button:hover,
+.button:hover {
+    background: #123e6b;
+    color: white;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    color: #555;
+    background: #eee;
+    border-color: #ccc;
+}
+
+.alert {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid #c47a35;
+    border-radius: .3rem;
+    background: #fff4e5;
+    color: #652b00;
+}
+
+.success {
+    padding: 1rem;
+    margin: 1rem 0;
+    border: 1px solid #a8cfb0;
+    border-radius: .3rem;
+    background: #e7f5e9;
+    color: #245b2e;
+}
+
+dt {
+    font-weight: 700;
+    margin-top: 1rem;
+}
+
+dd {
+    margin: .4rem 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+    main {
+        margin: 0;
+        padding: 1rem;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    nav,
+    .actions {
+        flex-wrap: wrap;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    th,
+    td {
+        padding: .7rem;
+    }
+}
+
+nav a,
+.actions a {
+    display: inline-block;
+    padding: .7rem 1rem;
+    border: 1px solid #b8c2cc;
+    border-radius: .3rem;
+    background: #fff;
+    color: #34495e;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+nav a:hover,
+.actions a:hover {
+    background: #f4f6f8;
+    color: #182536;
+}
+
+nav a.button,
+.actions a.button {
+    border-color: #174e87;
+    background: #174e87;
+    color: #fff;
+}
+
+nav a.button:hover,
+.actions a.button:hover {
+    background: #123e6b;
+    color: #fff;
+}
