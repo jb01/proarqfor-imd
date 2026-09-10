@@ -1,6 +1,6 @@
 # Arquitetura proposta — arqfor_v1.0
 
-Status: plano aprovado em 2026-09-08; cadastro, ZIP/cifra e orquestração implementados por recortes. Uma aplicação web local monolítica renderiza HTML com Spring Boot 3.x/Thymeleaf, em Java 21 LTS. Controllers recebem formulários; Services validam hashes, estados e coordenam arquivos; Spring Data JPA persiste metadados SQLite. A orquestração está disponível na camada de serviço e ainda não é acionada pela interface. Validação Maven/JUnit 5 e checkpoints registrados em tasks.md.
+Status: plano aprovado em 2026-09-08; cadastro, ZIP/cifra e orquestração implementados por recortes. Uma aplicação web local monolítica renderiza HTML com Spring Boot 3.x/Thymeleaf, em Java 21 LTS. Controllers recebem formulários; Services validam hashes, estados e coordenam arquivos; Spring Data JPA persiste metadados SQLite. EvidenceController conecta POST /evidences/{id}/archive à orquestração e redireciona aos detalhes, que exibem a senha persistida com escape HTML e sem expor a chave. Validação Maven/JUnit 5 e checkpoints registrados em tasks.md.
 
 ```mermaid
 flowchart LR

@@ -4,6 +4,7 @@ import com.forenstorage.web.model.Evidence;
 import com.forenstorage.web.model.EvidenceStatus;
 import com.forenstorage.web.repository.EvidenceRepository;
 import com.forenstorage.web.service.EvidenceRegistrationService;
+import com.forenstorage.web.service.ArchivingService;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -24,10 +25,13 @@ import java.nio.file.Path;
 public class EvidenceController {
     private final EvidenceRepository repository;
     private final EvidenceRegistrationService registration;
+    private final ArchivingService archiving;
 
-    public EvidenceController(EvidenceRepository repository, EvidenceRegistrationService registration) {
+    public EvidenceController(EvidenceRepository repository, EvidenceRegistrationService registration,
+                              ArchivingService archiving) {
         this.repository = repository;
         this.registration = registration;
+        this.archiving = archiving;
     }
 
     @GetMapping
@@ -74,10 +78,50 @@ public class EvidenceController {
 
     @GetMapping("/{id}")
     public String details(@PathVariable Long id, Model model) {
-        Evidence evidence = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evidência não encontrada"));
-        model.addAttribute("evidence", evidence);
+        try {
+            Evidence evidence = findEvidence(id);
+            model.addAttribute("evidence", evidence);
+            model.addAttribute("canArchive", canArchive(evidence));
+        } catch (DataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Não foi possível consultar a evidência; o estado atual não pôde ser confirmado.");
+        }
         return "evidences/details";
+    }
+
+    @PostMapping("/{id}/archive")
+    public String archive(@PathVariable Long id, @RequestParam(required = false) String status,
+                          RedirectAttributes redirect) {
+        try {
+            Evidence evidence = findEvidence(id);
+            if (status != null) {
+                throw new IllegalArgumentException("A ação Arquivar não aceita status manual.");
+            }
+            if (!canArchive(evidence)) {
+                throw new IllegalStateException("Arquivamento indisponível para esta evidência. "
+                        + "É necessário EM_ANALISE com .dd original e sem artefato já arquivado.");
+            }
+            // Only the persisted id enters the use case; paths, hashes and status are not bound from the form.
+            // The service revalidates eligibility and owns all retries, file operations and transitions.
+            archiving.archive(id);
+            redirect.addFlashAttribute("success", "Evidência arquivada com sucesso.");
+        } catch (DataAccessException e) {
+            redirect.addFlashAttribute("error", "Falha de persistência: não foi possível confirmar o arquivamento. "
+                    + "Consulte o estado atual da evidência.");
+        } catch (IllegalArgumentException | IllegalStateException | IOException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/evidences/" + id;
+    }
+
+    private Evidence findEvidence(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evidência não encontrada"));
+    }
+
+    private boolean canArchive(Evidence evidence) {
+        return evidence.getStatus() == EvidenceStatus.EM_ANALISE && evidence.getArchivedPath() == null
+                && evidence.getCurrentPath().endsWith(".dd");
     }
 
     private void formValues(Model model, String identifier, String path, String hash) {

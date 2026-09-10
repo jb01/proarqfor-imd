@@ -1,3 +1,13 @@
+## Situação atual — checklist reconciliado com a implementação
+
+13 das 26 tarefas numeradas estão integralmente concluídas; 13 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. As notas abaixo distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
+
+Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
+
+Pendências práticas principais: implementar remoção confirmada somente do registro e desarquivamento simulado com sua integração web, concluir organização/configuração dos dados e teste de reinício, revisar os registros nominais de dependências, validar hook quando autorizado e realizar demonstração/revisão final.
+
+Última execução comprovada: 183 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da integração web abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
+
 ## 1. Revisão humana antes de qualquer implementação
 
 - [x] 1.1 Revisar os artefatos e confirmar as interpretações de exclusão do registro, status por ações, path em fast, derivação AES, cópia .dd retida em work e retorno .zip.enc; verificar decisão humana registrada e coerência entre specs/design/ADRs.
@@ -9,16 +19,23 @@
 ## 2. Preparação futura autorizada
 
 - [ ] 2.1 Propor versões Spring Boot 3.x e dependências mínimas, inclusive driver SQLite e dialeto JPA, sem trocar a stack; verificar aprovação humana nominal antes de configuração.
+  - Parcial: Spring Boot 3.5.16/Java 21 alinhados por solicitação registrada; driver sqlite-jdbc e hibernate-community-dialects já estão no pom.xml. Falta evidência nominal completa da aprovação das dependências exigida por este item; a existência no código não equivale a essa aprovação.
 - [ ] 2.2 Após 1 e 2.1, criar projeto Java 21/Maven com stack aprovada; verificar compilação e teste básico JUnit 5, sem Docker.
+  - Implementação técnica concluída e compilação/contexto testados. Item mantido aberto apenas pela dependência formal do fechamento de 2.1; não é necessário recriar a fundação.
 - [ ] 2.3 Implementar persistência SQLite e separação de diretórios de dados; verificar unicidade, campos opcionais criptográficos e releitura após reinício com banco temporário.
+  - Parcial: entidade/repositório, unicidade, campos criptográficos e releitura por nova conexão SQLite implementados/testados. Falta alinhar o banco atual jdbc:sqlite:forenstorage.db com data/arqfor.db e a raiz de dados planejada, além de comprovar releitura após reinício da aplicação (nova conexão isolada não é reinício).
 - [ ] 2.4 Revisar e, com autorização específica, habilitar/testar hook em ambiente descartável conforme README; verificar bloqueio antes de execução e registrar limitações de cobertura.
+  - Estrutura já criada; matcher permanece inerte. Habilitação e testes de integração continuam pendentes de autorização específica.
 
 ## 3. Cadastro, telas e estados
 
 - [x] 3.1 Implementar cadastro de .dd, validação de identificador/path/hash e SHA-256 por streaming; verificar JUnit 5 para hash igual/divergente, caixa hexadecimal, duplicidade, symlink/escape e leitura falha.
 - [ ] 3.2 Implementar estados e transições permitidas no serviço; verificar todos os pares permitidos e proibidos, incluindo bloqueio total de HASH_DIVERGENTE/ERRO.
-- [ ] 3.3 Implementar listagem, Adicionar, cadastro/Cancelar/Cadastrar e detalhes com todos os campos; verificar navegação MVC e erros de formulário, usando apenas ferramentas já aprovadas.
+  - Parcial: matriz completa testada na entidade; cadastro/arquivamento e seus bloqueios implementados nos serviços. Faltam as transições operacionais e falhas do serviço de desarquivamento (6.1/6.2), sem adicionar seletor livre de status.
+- [x] 3.3 Implementar listagem, Adicionar, cadastro/Cancelar/Cadastrar e detalhes com todos os campos; verificar navegação MVC e erros de formulário, usando apenas ferramentas já aprovadas.
+  - Navegação, cadastro, listagem e detalhes completos, incluindo senha persistida com escape HTML e indicação de ausência. Arquivar conectado ao ArchivingService por POST, com mensagens e bloqueios testados. A integração de Desarquivar acompanha 6.1/6.2 e continua pendente; não há edição arbitrária de status.
 - [ ] 3.4 Implementar remoção somente de registro com confirmação e cancelamento; verificar registro removido, arquivo preservado e bloqueio durante operação em curso.
+  - Pendente: não há fluxo de remoção implementado; incluir confirmação com identificador, cancelamento, preservação dos arquivos e bloqueio durante operação.
 
 ## 4. Checkpoint obrigatório antes de código de exclusão em fast
 
@@ -39,17 +56,43 @@
 ## 6. Desarquivamento simulado
 
 - [ ] 6.1 Implementar movimento de .zip.enc para fast com transições e atualização de path; verificar conteúdo e extensão preservados, sem descriptografia, descompactação ou recálculo de hash.
+  - Pendente: serviço de desarquivamento e sua ação web ainda não existem. O retorno deve ser apenas simulado, preservando o artefato cifrado e os metadados.
 - [ ] 6.2 Implementar erro do movimento e rejeição de re-arquivamento do .zip.enc conforme decisão revisada; verificar ERRO na falha, preservação de metadados e orientação de novo cadastro .dd.
+  - Parcial: ArchivingService já recusa .zip.enc/artefato anteriormente arquivado e orienta novo cadastro. Falta tratamento/teste da falha de movimento no desarquivamento e validação do ciclo completo de retorno.
 
 ## 7. Demonstração e revisão final futuras
 
 - [ ] 7.1 Preparar Docker Compose somente para demonstração final local, após implementação; verificar configuração revisada com dados e storages persistentes fora do container, sem executar Docker automaticamente.
+  - Pendente: nenhum Dockerfile/Compose encontrado no projeto; preparar somente na etapa final prevista.
 - [ ] 7.2 Obter autorização específica para executar Docker e demonstração destrutiva com dados sintéticos; verificar autorização antes de executar e demonstrar persistência após reinicialização.
 - [ ] 7.3 Executar validação integrada autorizada: cadastro correto/divergente, bloqueios, arquivamento, duas falhas e retorno simulado; verificar resultados reais registrados, arquivos e metadados esperados.
+  - Parcial: 183 testes cobrem os recortes implementados, incluindo cadastro/arquivamento/detalhes via MVC com serviços e SQLite reais temporários; falta validação do fluxo final com retorno simulado. Não confundir a suíte atual com a demonstração completa do MVP.
 - [ ] 7.4 Apresentar alterações, testes executados, limitações, riscos e checklist; verificar relatório humano revisável sem alegar testes não executados.
+  - Relatórios por recorte e este checklist já existem. A revisão final do MVP permanece pendente até completar o escopo e executar sua validação integrada.
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+## Integração de Arquivar à interface e exibição da senha
+
+Por solicitação explícita do usuário, implementado somente este recorte e seus testes. EvidenceController recebe ArchivingService e oferece POST /evidences/{id}/archive. O formulário dos detalhes envia apenas a ação do id; parâmetros de path/senha não alteram o registro e status manual é recusado. A elegibilidade visual verifica EM_ANALISE, extensão .dd e ausência de archivedPath; POST inelegível é bloqueado também no controller. O serviço permanece responsável por revalidar estado/arquivo/raiz, concorrência, retry e transições, sem alteração de seu código.
+
+Após uma chamada ao serviço, redireciona aos detalhes com sucesso ou erro e nova consulta do registro. Não há retry adicional no controller. Falhas operacionais são apresentadas sem afirmar sucesso; falha SQLite é sanitizada e falha de consulta dos detalhes retorna HTTP 503 sem estado não confirmado. Evidência inexistente retorna HTTP 404. GET /archive não executa operação e retorna HTTP 405. O endpoint de edição manual de status continua inexistente.
+
+A senha persistida usa th:text, com escape HTML; null/vazio/espaços mostram “Ainda não gerada.”. Nenhuma chave AES é renderizada. A exposição didática da senha sem login continua sendo a limitação aprovada do ADR-0003.
+
+Testes adequados exigidos e executados: formulário POST habilitado, GET sem efeitos, sucesso com redirecionamento/leitura atualizada, cinco estados bloqueados, POST forjado, .zip.enc e archivedPath existentes, status manual, id inexistente, parâmetros extras ignorados, falhas operacionais/concorrência/SQLite, senha ausente/presente/escapada e chave ausente do HTML. Teste integrado usa cadastro via MVC, SQLite e serviços reais, um .dd sintético em @TempDir, arquivamento e leitura de senha/path/status pela interface; confirma origem removida, .dd de work preservado, cifrado presente e repetição do POST bloqueada. Não usa evidências ou banco reais do projeto.
+
+Comandos executados:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' -Dtest=EvidenceControllerTest test
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+Resultados: 32 testes MVC passaram na execução focalizada; suíte completa com 183 testes, 0 falhas, 0 erros, 0 ignorados, BUILD SUCCESS. São 20 casos adicionais em relação à suíte anterior de 163 (19 no controller e 1 integrado). Validação por MockMvc com renderização Thymeleaf; não foi executada sessão manual de navegador. A requisição segue síncrona, sem progresso em tempo real.
+
+Checklist: regras conferidas; integração e senha implementadas; testes executados; README/arquitetura/design/checklist atualizados; item 3.3 concluído. Proibidas e não realizadas alterações fora do escopo: serviços de arquivo/criptografia, dependências, banco/configuração, novos estados, remoção de registros, desarquivamento/restauração, hook, regras Git ou login. Nenhum commit, push, merge, Docker ou deploy. Recorte encerrado para revisão; 13/26 tarefas concluídas, aprovação de merge ainda pendente.
 
 ## Revisão prévia da orquestração — registro histórico antes da aprovação
 

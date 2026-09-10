@@ -4,9 +4,12 @@ import com.forenstorage.web.model.Evidence;
 import com.forenstorage.web.model.EvidenceStatus;
 import com.forenstorage.web.repository.EvidenceRepository;
 import com.forenstorage.web.service.EvidenceRegistrationService;
+import com.forenstorage.web.service.ArchivingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -29,11 +32,14 @@ class EvidenceControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean EvidenceRepository repository;
     @MockitoBean EvidenceRegistrationService registration;
+    @MockitoBean ArchivingService archiving;
     private static final String HASH = "a".repeat(64);
     private static final String PATH = "storage/fast/test.dd";
 
     private Evidence evidence(EvidenceStatus status) {
-        Evidence evidence = new Evidence("0001/2026", PATH, HASH, "b".repeat(64), status);
+        Evidence evidence = new Evidence("0001/2026", PATH, HASH, "b".repeat(64),
+                status == EvidenceStatus.HASH_DIVERGENTE ? status : EvidenceStatus.EM_ANALISE);
+        ReflectionTestUtils.setField(evidence, "status", status);
         ReflectionTestUtils.setField(evidence, "id", 7L);
         ReflectionTestUtils.setField(evidence, "createdAt", Instant.parse("2026-09-08T12:00:00Z"));
         return evidence;
@@ -161,9 +167,154 @@ class EvidenceControllerTest {
     }
 
     @Test
-    void craftedPostCannotArchiveOrChangeStatus() throws Exception {
-        mvc.perform(post("/evidences/7/archive")).andExpect(status().isNotFound());
+    void manualStatusEndpointRemainsUnavailable() throws Exception {
         mvc.perform(post("/evidences/7/status").param("status", "EM_ANALISE")).andExpect(status().isNotFound());
-        verifyNoInteractions(registration, repository);
+        verifyNoInteractions(registration, repository, archiving);
+    }
+
+    @Test
+    void eligibleDetailsOfferPostFormWithoutTriggeringArchiving() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        mvc.perform(get("/evidences/7")).andExpect(status().isOk())
+                .andExpect(model().attribute("canArchive", true))
+                .andExpect(content().string(containsString("method=\"post\"")))
+                .andExpect(content().string(containsString("action=\"/evidences/7/archive\"")))
+                .andExpect(content().string(not(matchesPattern("(?s).*id=\"archive-button\"[^>]*disabled.*"))));
+        mvc.perform(get("/evidences/7/archive")).andExpect(status().isMethodNotAllowed());
+        verifyNoInteractions(archiving);
+    }
+
+    @Test
+    void archivePostCallsUseCaseOnceAndRedirectsToFreshDetails() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        when(archiving.archive(7L)).thenReturn(evidence(EvidenceStatus.ARQUIVADO));
+        var result = mvc.perform(post("/evidences/7/archive").param("currentPath", "outside.dd")
+                        .param("encryptionPassword", "untrusted"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attribute("success", "Evidência arquivada com sucesso."))
+                .andExpect(flash().attributeCount(1)).andReturn();
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.ARQUIVADO)));
+        mvc.perform(get("/evidences/7").flashAttrs(result.getFlashMap())).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Evidência arquivada com sucesso.")))
+                .andExpect(content().string(containsString("ARQUIVADO")))
+                .andExpect(model().attribute("canArchive", false));
+        verify(archiving, times(1)).archive(7L);
+        verify(repository, never()).saveAndFlush(any());
+        verifyNoInteractions(registration);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = EvidenceStatus.class, names = "EM_ANALISE", mode = EnumSource.Mode.EXCLUDE)
+    void ineligibleStateDisablesButtonAndRejectsForgedPost(EvidenceStatus state) throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(state)));
+        mvc.perform(get("/evidences/7")).andExpect(status().isOk())
+                .andExpect(model().attribute("canArchive", false))
+                .andExpect(content().string(matchesPattern("(?s).*id=\"archive-button\"[^>]*disabled.*")));
+        mvc.perform(post("/evidences/7/archive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attributeExists("error")).andExpect(flash().attributeCount(1));
+        verifyNoInteractions(archiving);
+    }
+
+    @Test
+    void rejectsReturnedCiphertextAndAlreadyArchivedMetadata() throws Exception {
+        Evidence e = evidence(EvidenceStatus.EM_ANALISE);
+        e.setCurrentPath("storage/fast/test.zip.enc");
+        when(repository.findById(7L)).thenReturn(Optional.of(e));
+        mvc.perform(get("/evidences/7")).andExpect(model().attribute("canArchive", false));
+        mvc.perform(post("/evidences/7/archive")).andExpect(flash().attributeExists("error"));
+        e.setCurrentPath(PATH);
+        e.setArchivedPath("storage/cold/archive/test.zip.enc");
+        mvc.perform(get("/evidences/7")).andExpect(model().attribute("canArchive", false));
+        mvc.perform(post("/evidences/7/archive")).andExpect(flash().attributeExists("error"));
+        verifyNoInteractions(archiving);
+    }
+
+    @Test
+    void archivePostCannotSupplyStatus() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        mvc.perform(post("/evidences/7/archive").param("status", "ARQUIVADO"))
+                .andExpect(flash().attribute("error", containsString("não aceita status manual")));
+        verifyNoInteractions(archiving);
+    }
+
+    @Test
+    void archiveUnknownEvidenceReturns404WithoutCallingService() throws Exception {
+        when(repository.findById(99L)).thenReturn(Optional.empty());
+        mvc.perform(post("/evidences/99/archive")).andExpect(status().isNotFound());
+        verifyNoInteractions(archiving);
+    }
+
+    @Test
+    void operationalFailureShowsFreshPersistedErrorAndDoesNotRetryInController() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        when(archiving.archive(7L)).thenThrow(new IOException("Arquivamento falhou após duas tentativas"));
+        var result = mvc.perform(post("/evidences/7/archive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attribute("error", containsString("duas tentativas")))
+                .andExpect(flash().attributeCount(1)).andReturn();
+        Evidence failed = evidence(EvidenceStatus.EM_ANALISE);
+        failed.markError("Falha operacional persistida");
+        when(repository.findById(7L)).thenReturn(Optional.of(failed));
+        mvc.perform(get("/evidences/7").flashAttrs(result.getFlashMap()))
+                .andExpect(content().string(containsString("Falha operacional persistida")))
+                .andExpect(content().string(containsString("Arquivamento falhou após duas tentativas")))
+                .andExpect(model().attribute("canArchive", false));
+        verify(archiving, times(1)).archive(7L);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Arquivo inexistente", "Não foi possível confirmar ERRO"})
+    void ioFailuresAreVisibleWithoutClaimingSuccess(String message) throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        when(archiving.archive(7L)).thenThrow(new IOException(message));
+        mvc.perform(post("/evidences/7/archive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attribute("error", message)).andExpect(flash().attributeCount(1));
+        verify(archiving, times(1)).archive(7L);
+    }
+
+    @Test
+    void serviceStillRejectsStateChangedAfterControllerCheck() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        when(archiving.archive(7L)).thenThrow(new IllegalStateException("Arquivamento já em andamento"));
+        mvc.perform(post("/evidences/7/archive")).andExpect(redirectedUrl("/evidences/7"))
+                .andExpect(flash().attribute("error", "Arquivamento já em andamento"))
+                .andExpect(flash().attributeCount(1));
+        verify(archiving, times(1)).archive(7L);
+    }
+
+    @Test
+    void databaseFailureIsSanitizedAndUnavailableDetailsReturn503() throws Exception {
+        when(repository.findById(7L)).thenReturn(Optional.of(evidence(EvidenceStatus.EM_ANALISE)));
+        when(archiving.archive(7L)).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("internal SQL"));
+        mvc.perform(post("/evidences/7/archive")).andExpect(flash().attribute("error", containsString("Falha de persistência")))
+                .andExpect(flash().attribute("error", not(containsString("internal SQL"))))
+                .andExpect(flash().attributeCount(1));
+        when(repository.findById(7L)).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("internal SQL"));
+        mvc.perform(post("/evidences/7/archive")).andExpect(flash().attribute("error", containsString("Falha de persistência")));
+        mvc.perform(get("/evidences/7")).andExpect(status().isServiceUnavailable());
+        verify(archiving, times(1)).archive(7L);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = "   ")
+    void missingPasswordKeepsPlaceholder(String password) throws Exception {
+        Evidence e = evidence(EvidenceStatus.EM_ANALISE);
+        ReflectionTestUtils.setField(e, "encryptionPassword", password);
+        when(repository.findById(7L)).thenReturn(Optional.of(e));
+        mvc.perform(get("/evidences/7")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("Ainda não gerada.")));
+    }
+
+    @Test
+    void persistedPasswordIsEscapedAndKeyIsNeverRendered() throws Exception {
+        Evidence e = evidence(EvidenceStatus.ARQUIVADO);
+        ReflectionTestUtils.setField(e, "encryptionPassword", "<senha>&");
+        ReflectionTestUtils.setField(e, "encryptionKey", "INTERNAL_KEY_SENTINEL");
+        when(repository.findById(7L)).thenReturn(Optional.of(e));
+        mvc.perform(get("/evidences/7")).andExpect(status().isOk())
+                .andExpect(content().string(containsString("&lt;senha&gt;&amp;")))
+                .andExpect(content().string(not(containsString("<senha>"))))
+                .andExpect(content().string(not(containsString("Ainda não gerada."))))
+                .andExpect(content().string(not(containsString("INTERNAL_KEY_SENTINEL"))));
     }
 }

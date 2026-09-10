@@ -2,7 +2,7 @@
 
 Sistema de Gestão de Armazenamento de Evidências Forenses Digitais — MVP acadêmico local.
 
-**Etapa atual: cadastro web, ZIP/cifra e orquestração de arquivamento na camada de serviço, com Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. A orquestração ainda não está ligada a uma ação web; desarquivamento e revisão de merge continuam pendentes.
+**Etapa atual: cadastro e arquivamento integrados à interface, com exibição da senha persistida, Spring Boot 3.5.16 e Java 21.** Os três ADRs estão Accepted. Desarquivamento, remoção de registros e revisão de merge continuam pendentes.
 
 ## Stack e objetivo
 
@@ -105,9 +105,19 @@ O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execu
 
 ## Limitações e decisões aprovadas
 
+### Arquivar pela interface e senha nos detalhes
+
+Nos detalhes, Arquivar envia `POST /evidences/{id}/archive` ao ArchivingService existente e aguarda o processamento síncrono. O botão é habilitado para EM_ANALISE, path terminado em .dd e ausência de archivedPath; essa verificação da tela não substitui a validação completa do arquivo, raiz e estado pelo serviço. POST forjado para estado/artefato inelegível é recusado; status manual não é aceito. Paths, hashes e senha enviados como parâmetros extras não são usados para alterar o registro. GET não inicia arquivamento.
+
+Após sucesso ou falha tratada, o navegador retorna aos detalhes por redirecionamento, com mensagem e nova leitura do estado persistido. O controller chama o serviço uma única vez: a repetição continua exclusivamente no orquestrador. Falhas SQLite recebem mensagem sem detalhes internos; se a consulta dos detalhes também estiver indisponível, retorna HTTP 503, sem apresentar estado como confirmado. Registro inexistente retorna HTTP 404.
+
+A senha persistida é exibida com escape HTML; null, vazio ou apenas espaços exibem “Ainda não gerada.”. A chave AES não é renderizada. A exibição da senha sem login permanece uma limitação acadêmica já aprovada. O fluxo de cópia, cifra, exclusões, retry e estados não foi alterado nesta integração. Alterações fora do recorte permanecem proibidas: desarquivamento, remoção de registros, edição arbitrária de status, novos serviços/dependências, hook e regras Git.
+
+Validação após esta integração: **183 testes, 0 falhas, 0 erros e 0 ignorados**, incluindo 32 testes do controller e um teste MVC integrado com serviços reais, SQLite e arquivos sintéticos temporários. O teste integrado confirma senha/path/status após arquivamento e recusa de um novo POST. Testes executados com o agente Mockito indicado abaixo; não houve teste manual em navegador nem operação sobre evidências reais.
+
 ### Orquestração de arquivamento
 
-`ArchivingService.archive(Long evidenceId)` executa sincronamente o fluxo completo na camada de serviço. Exige EM_ANALISE, um .dd regular/legível dentro de fast e chamada fora de transação ativa. Rejeita estados bloqueados, paths externos, symlinks e artefato já arquivado, inclusive .zip.enc retornado da simulação. Usa uma exclusão mútua por id no serviço e atualização condicional de EM_ANALISE para ARQUIVANDO no SQLite para impedir processamento duplicado. Não foi adicionado endpoint ou botão funcional nesta tarefa.
+`ArchivingService.archive(Long evidenceId)` executa sincronamente o fluxo completo na camada de serviço. Exige EM_ANALISE, um .dd regular/legível dentro de fast e chamada fora de transação ativa. Rejeita estados bloqueados, paths externos, symlinks e artefato já arquivado, inclusive .zip.enc retornado da simulação. Usa uma exclusão mútua por id no serviço e atualização condicional de EM_ANALISE para ARQUIVANDO no SQLite para impedir processamento duplicado. A ação web descrita acima chama esse serviço sem mudar o fluxo aprovado.
 
 StorageCopyService cria um diretório de tentativa em `work/<id-interno>/copy-*` e copia por streaming sem sobrescrita. Só confirma a cópia após EOF, contagem de bytes, fechamento de ambos os streams e tamanho igual ao da origem. Antes de remover fast, confirma o path de work no SQLite e revalida tamanho, data de modificação e identidade dos arquivos de origem e destino. Não há novo hash. O .dd de work é preservado.
 
