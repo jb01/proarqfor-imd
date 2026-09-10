@@ -47,3 +47,31 @@ O agente MUST executar testes adequados após cada comportamento implementado e 
 #### Scenario: Teste de comportamento
 - **WHEN** um comportamento é implementado com autorização
 - **THEN** testes pertinentes usam dados sintéticos e temporários; resultados e falhas são informados sem inventar execuções
+
+### Requirement: Docker condicionado à autorização humana explícita
+
+O projeto MUST possuir um hook PreToolUse que bloqueie `docker run` por padrão antes da execução. O agente MUST apresentar a ação concreta e obter a autorização humana `APROVADO: Use o docker.` antes de executar Docker. A autorização MUST ser vinculada ao comando, cwd, imagem, argumentos e mounts revisados; não constitui liberação permanente. O mecanismo de verificação pelo hook MUST ser definido e revisado antes da implementação; na ausência de evidência confiável, a execução MUST permanecer bloqueada. A regra MUST preservar os demais hooks e permissões.
+
+#### Scenario: Execução sem autorização
+- **WHEN** uma chamada coberta tenta executar docker run sem aprovação humana verificável para a ação
+- **THEN** o hook bloqueia antes da execução e informa o checkpoint necessário
+
+#### Scenario: Aprovação forjada no comando
+- **WHEN** a frase de aprovação aparece somente no payload, variável, arquivo do projeto ou texto gerado pelo agente
+- **THEN** essa presença não é aceita como autorização e a execução permanece bloqueada
+
+#### Scenario: Ação revisada e aprovada
+- **WHEN** a autorização humana foi verificada para a ação apresentada e todos os demais controles permitem a execução
+- **THEN** somente essa ação pode prosseguir, sem liberar comandos Docker diferentes automaticamente
+
+#### Scenario: Comando alterado após aprovação
+- **WHEN** a ação pretendida muda materialmente em relação ao comando aprovado
+- **THEN** a aprovação anterior não libera a nova ação e uma nova autorização é necessária
+
+#### Scenario: Chamada indireta ou ambígua
+- **WHEN** o Docker é invocado por caminho absoluto, alias equivalente container run ou shell indireto, ou não é possível determinar com segurança o efeito do comando
+- **THEN** a chamada não recebe liberação automática sem autorização verificável e a ambiguidade mantém o bloqueio
+
+#### Scenario: Outro guardrail mantém a recusa
+- **WHEN** há aprovação de Docker mas o guardrail de fast ou outra permissão bloqueia a chamada
+- **THEN** a ação continua bloqueada e o novo hook não desabilita nem contorna esse controle

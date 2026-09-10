@@ -10,6 +10,7 @@ O arqfor_v1.0 precisa demonstrar localmente o cadastro e o arquivamento de evid�
 - Simular três storages locais, ZIP seguido de AES-GCM e desarquivamento que apenas move o arquivo cifrado.
 - Persistir metadados no SQLite e documentar as limitações acadêmicas.
 - Estabelecer ADRs Proposed, checkpoints humanos e estrutura de hook sem executá-lo.
+- Acrescentar a tarefa 2.5: hook para bloquear `docker run` por padrão e exigir `APROVADO: Use o docker.` vinculado ao comando revisado, preservando o guardrail de fast e as demais permissões.
 
 ## Capabilities
 

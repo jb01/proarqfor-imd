@@ -1,10 +1,10 @@
 ## Situação atual — checklist reconciliado com a implementação
 
-20 das 26 tarefas numeradas estão integralmente concluídas; 6 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
+20 das 27 tarefas numeradas estão integralmente concluídas; 7 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
 
 Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade e fluxos nos serviços; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface; desarquivamento simulado integrado à interface, com movimento do cifrado, transições, bloqueios e ERRO. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
 
-Remoção confirmada somente do registro concluída. Pendências práticas principais: validar hook quando autorizado e realizar demonstração/revisão final.
+Remoção confirmada somente do registro concluída. Pendências práticas principais: concluir a integração do hook (contrato 16/16 aprovado; confiança da cópia bloqueada pela revisão automática), concluir a ativação/integração do hook de Docker (2.5; implementação e 17 testes isolados concluídos) e realizar demonstração/revisão final.
 
 Última execução comprovada: 247 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da task 3.4 abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
 
@@ -25,7 +25,11 @@ Remoção confirmada somente do registro concluída. Pendências práticas princ
 - [x] 2.3 Implementar persistência SQLite e separação de diretórios de dados; verificar unicidade, campos opcionais criptográficos e releitura após reinício com banco temporário.
   - Concluído: banco padrão em data/arqfor.db, raiz configurável comum e criação do diretório pai antes do pool JDBC. Reinício comprovado fechando contexto Spring/JPA/pool e abrindo novo contexto sobre banco temporário; registros, unicidade, campos opcionais e metadados criptográficos preservados. Não houve migração do banco antigo nem demonstração Docker.
 - [ ] 2.4 Revisar e, com autorização específica, habilitar/testar hook em ambiente descartável conforme README; verificar bloqueio antes de execução e registrar limitações de cobertura.
-  - Estrutura já criada; matcher permanece inerte. Habilitação e testes de integração continuam pendentes de autorização específica.
+  - Parcial: usuário autorizou revisar/habilitar/testar em ambiente descartável. Contrato do script validado em 16/16 casos; cópia com matcher ^Bash$ preparada. hooks/list não carregou a fonte por falta de confiança na pasta. A revisão automática rejeitou a alteração persistente da configuração pessoal; interceptação efetiva continua pendente. Fonte do projeto permanece inerte. Ver docs/hook-validation.md e registro abaixo.
+
+- [ ] 2.5 Implementar e validar hook PreToolUse que bloqueie `docker run` por padrão e condicione sua execução à autorização humana explícita `APROVADO: Use o docker.` para o comando concreto apresentado; testar bloqueio sem aprovação, aprovação inválida/forjada, alteração do comando, chamadas indiretas e coexistência com o guardrail de fast, em ambiente descartável.
+  - Parcial: launcher Bash/verificador Python padrão e entrada inerte no hooks.json implementados após solicitação do usuário. Verifica revisão estruturada e evento humano no transcript nativo da IDE 0.153.4, vinculados ao comando/cwd/shell/login e turno; não aceita frase no comando, arquivo do projeto ou variável. 17 testes isolados passaram com substituto de Docker. Detalhes e limitações em docs/docker-hook-validation.md.
+  - Falta interceptação real: confiança pessoal continua pendente, CLI local 0.149.1 difere da IDE 0.153.4 e transcripts nativos com escrita de grupo são recusados. Nenhuma configuração pessoal ou permissão desses arquivos foi alterada. A aprovação não cria liberação permanente para Docker, não substitui outras permissões e não desabilita o hook de fast. Se esse hook bloquear todo shell, a ação continua bloqueada. Testes devem distinguir contrato isolado de interceptação real; não iniciar daemon, baixar imagem ou executar container apenas para criar a tarefa. Demais comandos Docker, inclusive Compose, continuam sujeitos à aprovação explícita da ação concreta prevista em 7.2.
 
 ## 3. Cadastro, telas e estados
 
@@ -64,7 +68,7 @@ Remoção confirmada somente do registro concluída. Pendências práticas princ
 
 - [ ] 7.1 Preparar Docker Compose somente para demonstração final local, após implementação; verificar configuração revisada com dados e storages persistentes fora do container, sem executar Docker automaticamente.
   - Pendente: nenhum Dockerfile/Compose encontrado no projeto; preparar somente na etapa final prevista.
-- [ ] 7.2 Obter autorização específica para executar Docker e demonstração destrutiva com dados sintéticos; verificar autorização antes de executar e demonstrar persistência após reinicialização.
+- [ ] 7.2 Obter autorização específica `APROVADO: Use o docker.` vinculada aos comandos da demonstração, além da autorização de operações destrutivas com dados sintéticos; verificar o checkpoint e o guardrail de 2.5 antes de executar e demonstrar persistência após reinicialização.
 - [ ] 7.3 Executar validação integrada autorizada: cadastro correto/divergente, bloqueios, arquivamento, duas falhas e retorno simulado; verificar resultados reais registrados, arquivos e metadados esperados.
   - Parcial: 228 testes cobrem os recortes implementados, incluindo cadastro/arquivamento/detalhes via MVC e arquivamento/retorno simulado no serviço com SQLite e arquivos temporários. Retorno simulado e falha de movimento também validados via MVC; a demonstração e revisão final continuam pendentes. Não confundir a suíte atual com a demonstração completa do MVP.
 - [ ] 7.4 Apresentar alterações, testes executados, limitações, riscos e checklist; verificar relatório humano revisável sem alegar testes não executados.
@@ -73,7 +77,37 @@ Remoção confirmada somente do registro concluída. Pendências práticas princ
 
 ## Registro de aprovações
 
+## Implementação do hook Docker — task 2.5 — validação parcial
+
+O usuário solicitou `Execute a tarefa 2.5`. Implementados .codex/hooks/bloquear-docker.sh, .codex/hooks/bloquear-docker.py e entrada independente no hooks.json; matcher permanece inerte até a validação de ativação. O script original de fast e sua regra não foram alterados. Revisão técnica do mecanismo registrada no design antes do código: evento humano do transcript nativo fora do projeto, identidade de sessão/turno, revisão estruturada e correspondência exata de command/cwd/shell/login. Biblioteca padrão Python 3 já disponível, sem instalação ou dependência Java nova.
+
+Gramática deliberadamente restrita: Docker direto/literal exige a frase `APROVADO: Use o docker.` como mensagem humana seguinte à revisão; shell indireto/ambíguo é bloqueado. Somente pwd/true/false literais com Bash sem login são isentos. O grant não é arquivo ou flag; vale para a mesma ação no turno da resposta, sem consumo único. Não supera outras recusas. Formato de transcript limitado ao legacy observado da IDE 0.153.4; não é uma API estável nem isolamento contra processos externos.
+
+Executados `python3 -B scripts/test-docker-hook.py` (17 testes passaram), `bash scripts/test-hook-contract.sh` (16/16 casos passaram) e `bash -n .codex/hooks/bloquear-docker.sh`. Na primeira execução, dois testes positivos recusaram fixtures graváveis pelo grupo devido à umask; corrigidas somente permissões das fixtures para 0700/0600 e reexecutados com sucesso, sem relaxar o verificador. Cobertura: aprovação válida e forjada, alteração da ação, sessão/turno/origem/versão, comandos diretos/indiretos, transcript inválido/symlink/permissões, entrada inválida, falha do verificador e coexistência com recusa de fast. Executável substituto apenas grava argumentos temporários; nenhum Docker real, daemon, download, dado real ou JUnit executado.
+
+A tarefa NÃO foi marcada concluída: faltam confiança/ativação e interceptação real pelo runtime compatível. A recusa anterior da revisão automática sobre configuração pessoal permanece; não foi tentada novamente ou contornada. Além disso, diretórios do transcript atual são 0775 e arquivo 0664; a política exige retirar escrita de grupo nesses paths antes de aceitá-los. Lista exata e ajuste mínimo proposto estão em docs/docker-hook-validation.md; nenhuma permissão nativa foi alterada. Apenas contratos passaram, não integração Codex. Total permanece 20/27. Sem commit, push, merge, Docker ou tarefa posterior.
+
+## Solicitação de novo hook para Docker — task 2.5
+
+O usuário solicitou criar uma nova tarefa para um hook que bloqueie docker run e exija permissão explícita para executar Docker, indicando a frase `APROVADO: Use o docker.`. A frase foi registrada como checkpoint solicitado. Não foi apresentado nesta rodada nenhum comando Docker concreto para execução; não foi tratada como liberação permanente nem como autorização para alterar a configuração pessoal de confiança do Codex que bloqueou 2.4.
+
+Criada tarefa 2.5 pendente e alinhados proposta, design e spec agent-governance. Somente planejamento: nenhum hook novo implementado/ativado, Docker executado, teste de runtime realizado ou commit criado. Total atual: 20/27 tarefas concluídas. A task 2.4 e seu bloqueio continuam independentes; os totais nos relatos históricos abaixo descrevem suas respectivas ocasiões.
+
+## Hook em ambiente descartável — task 2.4 — revisão parcial
+
+Autorização recebida: o usuário solicitou “Hook Revisar, habilitar e testar em ambiente descartável, mediante autorização específica” e “Pare depois dela”. A autorização foi aplicada à revisão, cópia mínima temporária e testes sintéticos; não às outras tarefas ou commit.
+
+Codex CLI 0.149.1 conferido; hooks stable true. Preservada a política conservadora: todo shell recebe recusa, sem parser nem exceções. Preparada /tmp/arqfor-hook-validation/workspace com cópia do script, hooks.json apontando para essa cópia com matcher ^Bash$, repositório Git vazio e sentinela sintética; nenhum dado real ou credencial copiado, nenhum commit. A fonte do projeto de trabalho permanece inerte.
+
+Executados os testes de contrato e adicionada reprodução em scripts/test-hook-contract.sh: bash -n aprovado; 16/16 payloads retornaram código 2, stdout vazio e motivo de bloqueio no stderr, com sentinela preservada. A execução reproduzível gerou resultados em /tmp/arqfor-hook-contract.0mwq4p. Payloads são somente texto, incluindo rm/mv/sobrescrita, path absoluto, cwd, variável, symlink, interpretador, shell indireto, pipeline e entradas vazia/inválida/null. Esses testes não comprovam interceptação pelo runtime. Nenhum código Java alterado; JUnit não reexecutado.
+
+A inicialização restrita do app-server falhou por filesystem/sandbox. A consulta hooks/list em execução autorizada iniciou sem turno de modelo e devolveu lista vazia: falta confiança no projeto descartável. O próximo passo preparado era config/value/write para confiar somente nessa pasta em ~/.codex/config.toml. A revisão automática rejeitou a ação por alterar persistentemente configuração pessoal fora do ambiente descartável e exceder a autorização. A escrita foi impedida; não foi contornada a recusa nem usada opção de bypass. Solicitar autorização específica para confiança dessa pasta e da definição exata do hook antes de retomar a integração. Detalhes em docs/hook-validation.md.
+
+A task 2.4 permanece aberta e o total continua 20/26. Faltam carregamento confiável, bloqueio comprovado de comando inofensivo e, depois, testes de mutação da sentinela via ferramentas cobertas. Sem operações sobre dados reais, Docker, commit, push ou merge; nenhuma tarefa posterior iniciada.
+
 ## Remoção confirmada somente do registro — task 3.4 — 2026-09-10
+
+Revisão do recorte aprovada: após o relato de conclusão da task 3.4 e dos 247 testes aprovados, o usuário respondeu nesta conversa: `Aprovado`. A aprovação refere-se a este recorte; permanece a instrução de parar e deixar o commit para o usuário. Não equivale a `APROVADO: merge` nem autoriza executar as tarefas restantes. Registro documental, sem nova execução de testes.
 
 Autorização deste recorte: o usuário solicitou implementar confirmação com identificador, cancelamento, exclusão somente do cadastro, preservação dos arquivos e bloqueio durante operações; determinou parar após a conclusão e não fazer commit. Essa solicitação não aprova merge ou ações sobre dados reais.
 

@@ -78,26 +78,28 @@ Antes de implementar código que exclua arquivo em fast, apresentar fluxo, condi
 
 Antes de merge ou entrega da implementação, apresentar testes realmente executados, mudanças, limitações, riscos e checklist e aguardar `APROVADO: merge`. Commit, push, merge, deploy, Docker e ações destrutivas exigem aprovação humana específica. Nenhuma dessas ações é realizada nesta etapa.
 
-## Guardrail técnico — estrutura não executada
+## Guardrail técnico — contrato testado; integração pendente
 
 Arquivos: [.codex/hooks.json](.codex/hooks.json) e [bloquear-exclusao-fast.sh](.codex/hooks/bloquear-exclusao-fast.sh). O matcher inicial `^ARQFOR_HOOK_DESABILITADO$` não corresponde a ferramentas shell: a estrutura fica inerte até ativação humana. Não usar esse nome como ferramenta. O script não interpreta nem executa o comando recebido; devolve recusa via código 2.
 
 A política inicial, deliberadamente conservadora, **bloqueia todo shell quando ativada**, incluindo leituras. Assim não depende de reconhecer `rm`: abrange comandos indiretos, redirecionamentos, `mv`, interpretadores e caminhos via variáveis ou symlinks. Uma política seletiva de liberação exigiria nova revisão e testes; não se presume segura uma regex de comandos destrutivos.
 
-### Habilitar futuramente
+Revisão da task 2.4: **16/16 testes do contrato passaram** com cópia do script e sentinela sintética em `/tmp`. A cópia de integração possui matcher `^Bash$`, mas o Codex ainda não carregou essa fonte por falta de confiança no projeto descartável. A revisão automática rejeitou a escrita dessa confiança na configuração pessoal por exceder o escopo autorizado. O projeto de trabalho continua com matcher inerte. [Relatório, bloqueio e próximo passo](docs/hook-validation.md).
+
+### Habilitar a integração pendente
 
 Somente após revisão humana, em ambiente descartável sem evidências reais:
 
-1. Conferir versão e suporte a hooks na instalação do Codex. A versão observada durante o planejamento foi 0.149.1; a integração não foi testada.
+1. Conferir versão e suporte a hooks na instalação do Codex. A versão conferida na task 2.4 foi 0.149.1, com `hooks stable true`; a interceptação efetiva ainda não foi comprovada.
 2. No editor, substituir somente o matcher inerte de hooks.json por `^Bash$`. Ajustar o caminho absoluto do script no campo command se o repositório tiver sido movido. O uso de `/bin/bash` dispensa tornar o script executável.
 3. Garantir `[features] hooks = true` no config.toml da configuração local apropriada; não há config.toml criado por esta etapa. Reiniciar a sessão e revisar/confiar na fonte do hook conforme a interface instalada, sem ignorar a verificação de confiança.
 4. Encerrar sessões shell anteriores: envio a processos já iniciados não passa necessariamente por nova interceptação. Confirmar a integração em diretório descartável antes de confiar na proteção.
 
 Segundo a [documentação oficial de hooks do Codex](https://learn.chatgpt.com/docs/hooks), `PreToolUse` cobre shell com alias `Bash`, inclusive `exec_command`; saída 2 bloqueia. Hooks não são uma barreira completa de isolamento, e `write_stdin` não reavalia comandos de uma sessão existente.
 
-### Testar futuramente — não executar agora
+### Testes de contrato e integração
 
-Primeiro, após autorização, validar o contrato isoladamente num terminal humano. Este comando envia apenas texto JSON ao hook; **não executa o rm contido no texto**:
+O contrato foi testado após a autorização da task 2.4 e pode ser reproduzido com `bash scripts/test-hook-contract.sh`, usando somente cópia e sentinela temporárias. Este exemplo ilustra a entrada textual; **não executa o rm contido no texto**:
 
 ```bash
 printf '%s\n' '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"rm storage/fast/ficticio.dd"}}' | /bin/bash .codex/hooks/bloquear-exclusao-fast.sh
@@ -111,7 +113,15 @@ Depois, testar a integração em **cópia descartável do repositório**, com ar
 
 Com aprovação humana, restaurar no editor o matcher `^ARQFOR_HOOK_DESABILITADO$` e reiniciar a sessão. Isso desativa apenas esta regra e preserva outros hooks. Desativação não autoriza exclusão de fast; o checkpoint continua obrigatório. Não usar o agente para contornar o próprio bloqueio.
 
-O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execução, terminais externos ou ferramentas fora da cobertura. A implementação deve ter suas próprias condições de cópia segura. O hook não foi habilitado nem executado e sua eficácia em integração ainda precisa ser confirmada.
+O hook cobre chamadas shell interceptadas pelo Codex; não protege Java em execução, terminais externos ou ferramentas fora da cobertura. A implementação deve ter suas próprias condições de cópia segura. O script copiado passou nos testes de contrato; sua eficácia como interceptador no Codex ainda precisa ser confirmada. A task 2.4 permanece aberta.
+
+### Hook de Docker — implementação parcial da task 2.5
+
+Criados [launcher Bash](.codex/hooks/bloquear-docker.sh) e [verificador](.codex/hooks/bloquear-docker.py), com fonte independente ainda inerte em hooks.json. O hook exige revisão do comando completo, cwd, shell e login, seguida de `APROVADO: Use o docker.` em evento humano do transcript nativo. A frase em arquivo de projeto, comando ou variável não libera Docker. A autorização é restrita à ação e ao turno da resposta; os demais hooks continuam podendo negar.
+
+A gramática é conservadora: Docker direto e literal com Bash sem login pode ser autorizado; indireções e comandos ambíguos são recusados. Comandos sem Docker também são recusados, exceto pwd/true/false literais nessa configuração. Isso pode bloquear comandos normais de desenvolvimento quando a fonte for ativada. O adapter suporta somente o formato legacy observado da IDE 0.153.4 e exige transcript fora do projeto, sem symlinks ou escrita de grupo/outros; não representa isolamento do sistema operacional.
+
+**17 testes isolados passaram**, usando somente substituto local de Docker; os 16 testes de fast também passaram. Integração Codex pendente: falta confiança da fonte e adequação das permissões dos transcripts nativos; o CLI local 0.149.1 difere da IDE. Nenhuma configuração pessoal, permissão nativa ou container foi alterado. [Relatório, reprodução, formato de revisão e pendências](docs/docker-hook-validation.md). A task 2.5 permanece aberta.
 
 ## Limitações e decisões aprovadas
 
