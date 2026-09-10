@@ -19,6 +19,16 @@ Cada evidência representa um único arquivo `.dd`. O MVP verificará SHA-256 no
 
 Na reorganização para a raiz, o `.gitignore` foi unificado conforme solicitado: preserva regras Maven/IDE e protege SQLite, arquivos `.dd`, `.zip`, `.enc`, storage, chaves e configurações locais. Essas regras não alteram os checkpoints de implementação ou autorizam exclusões de dados.
 
+## Banco e raiz de dados
+
+O banco padrão agora é `data/arqfor.db`. `DataSourceConfiguration` cria o diretório pai antes de abrir o pool JDBC; se o diretório não puder ser criado, a inicialização falha sem substituir arquivos existentes. Não há migração automática: o antigo `forenstorage.db` permanece intacto e seus registros não aparecem automaticamente no novo banco.
+
+`forenstorage.data-root` define a raiz comum de `data/arqfor.db` e dos três caminhos `storage/fast`, `storage/cold/work` e `storage/cold/archive`. O padrão `.` mantém a execução a partir da raiz do projeto. Para executar de outro diretório, defina uma raiz absoluta estável, por exemplo `--forenstorage.data-root=/caminho/dados-arqfor`. Os overrides existentes de `spring.datasource.url` e `forenstorage.storage.*` continuam disponíveis. URLs SQLite em memória são preservadas; URLs SQLite no formato URI `file:` ficam a cargo do driver e exigem diretório previamente preparado.
+
+A comprovação de reinício fecha inteiramente o primeiro contexto Spring, incluindo EntityManagerFactory e pool JDBC, e inicia uma nova aplicação no mesmo diretório temporário. Verifica registros, unicidade, campos criptográficos opcionais/preenchidos, hashes e bytes cifrados persistidos. É reinício de contexto na mesma JVM, sem Docker nem reinício de processo/container. Persistência não significa recuperação automática de operações interrompidas.
+
+Validação deste recorte: **230 testes aprovados**, sem falhas, erros ou ignorados, incluindo dois novos testes de reinício e falha de diretório.
+
 ## Comportamento planejado
 
 Listagem com Adicionar e registros clicáveis. Cadastro recebe identificador único, path, hash SHA-256 e intenção de status inicial; Cancelar volta à lista sem gravar e Cadastrar grava e volta. Detalhes mostram identificador, path atual, hashes original/informado e conferido/calculado, data, senha, status e erro, se houver. Senha é gerada no arquivamento; antes disso, indicar ausência.

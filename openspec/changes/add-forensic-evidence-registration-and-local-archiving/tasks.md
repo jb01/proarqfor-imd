@@ -1,12 +1,12 @@
 ## Situação atual — checklist reconciliado com a implementação
 
-16 das 26 tarefas numeradas estão integralmente concluídas; 10 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
+19 das 26 tarefas numeradas estão integralmente concluídas; 7 continuam abertas, incluindo atividades parcialmente implementadas e checkpoints. Essa contagem não representa percentual de código pronto. A integração web de Desarquivar está concluída, conforme registro deste recorte abaixo. As notas distinguem o que já existe do que falta, sem criar novas aprovações nem alterar os critérios originais.
 
 Concluído tecnicamente: fundação Java 21/Spring Boot 3.5.16/Maven; entidade/repositório SQLite e metadados criptográficos; cadastro SHA-256; listagem/formulário/detalhes com senha persistida; matriz de estados na entidade e fluxos nos serviços; ZIP; AES-GCM; cópia segura; arquivamento síncrono com uma retomada global e ERRO, integrado à ação Arquivar na interface; desarquivamento simulado integrado à interface, com movimento do cifrado, transições, bloqueios e ERRO. Aprovações do plano, dos três ADRs e da exclusão-fast-storage estão registradas.
 
-Pendências práticas principais: implementar remoção confirmada somente do registro, concluir organização/configuração dos dados e teste de reinício, revisar os registros nominais de dependências, validar hook quando autorizado e realizar demonstração/revisão final.
+Pendências práticas principais: implementar remoção confirmada somente do registro, validar hook quando autorizado e realizar demonstração/revisão final.
 
-Última execução comprovada: 228 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da integração web de Desarquivar abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
+Última execução comprovada: 230 testes, 0 falhas, 0 erros, 0 ignorados, conforme relatórios Surefire e registro da task 2.3 abaixo. Nenhuma nova dependência ou commit. Os relatos posteriores neste arquivo são históricos: expressões como “pendente” ou “não implementado” neles descrevem a ocasião do registro, não substituem este checklist atual.
 
 ## 1. Revisão humana antes de qualquer implementação
 
@@ -18,12 +18,12 @@ Pendências práticas principais: implementar remoção confirmada somente do re
 
 ## 2. Preparação futura autorizada
 
-- [ ] 2.1 Propor versões Spring Boot 3.x e dependências mínimas, inclusive driver SQLite e dialeto JPA, sem trocar a stack; verificar aprovação humana nominal antes de configuração.
-  - Parcial: Spring Boot 3.5.16/Java 21 alinhados por solicitação registrada; driver sqlite-jdbc e hibernate-community-dialects já estão no pom.xml. Falta evidência nominal completa da aprovação das dependências exigida por este item; a existência no código não equivale a essa aprovação.
-- [ ] 2.2 Após 1 e 2.1, criar projeto Java 21/Maven com stack aprovada; verificar compilação e teste básico JUnit 5, sem Docker.
-  - Implementação técnica concluída e compilação/contexto testados. Item mantido aberto apenas pela dependência formal do fechamento de 2.1; não é necessário recriar a fundação.
-- [ ] 2.3 Implementar persistência SQLite e separação de diretórios de dados; verificar unicidade, campos opcionais criptográficos e releitura após reinício com banco temporário.
-  - Parcial: entidade/repositório, unicidade, campos criptográficos e releitura por nova conexão SQLite implementados/testados. Falta alinhar o banco atual jdbc:sqlite:forenstorage.db com data/arqfor.db e a raiz de dados planejada, além de comprovar releitura após reinício da aplicação (nova conexão isolada não é reinício).
+- [x] 2.1 Propor versões Spring Boot 3.x e dependências mínimas, inclusive driver SQLite e dialeto JPA, sem trocar a stack; verificar aprovação humana nominal antes de configuração.
+  - Aprovação nominal recebida: o usuário respondeu `Aprovada.` nesta conversa à apresentação de org.xerial:sqlite-jdbc:3.49.1.0 e org.hibernate.orm:hibernate-community-dialects:6.6.53.Final, gerenciadas por Spring Boot 3.5.16/Java 21. Evidências técnicas e decisão em [docs/sqlite-dependencies-review.md](../../../docs/sqlite-dependencies-review.md). A resposta regulariza o registro nominal agora; não constitui aprovação anterior à configuração já existente. Nenhum código/dependência alterado ou novo teste executado neste recorte documental. Não autoriza commit, push, merge, Docker ou operações sobre evidências.
+- [x] 2.2 Após 1 e 2.1, criar projeto Java 21/Maven com stack aprovada; verificar compilação e teste básico JUnit 5, sem Docker.
+  - Fechamento formal solicitado pelo usuário após aprovação nominal de 2.1. Fundação existente Java 21/Maven/Spring Boot 3.5.16 conferida em pom.xml; compilação e execução JUnit 5 comprovadas pela última suíte registrada (228 testes, sem falhas, erros ou ignorados), incluindo WebApplicationTests e HomeControllerTest. Aprovações da seção 1 e de 2.1 registradas. Reconciliação documental da implementação já existente, sem atribuir aprovação retroativa à configuração anterior. Nenhum código, dependência ou dado alterado; não houve nova compilação ou execução de testes neste fechamento. Não foram executados Docker, commit, push ou merge. Demais tarefas permanecem pendentes; encerrado somente este recorte.
+- [x] 2.3 Implementar persistência SQLite e separação de diretórios de dados; verificar unicidade, campos opcionais criptográficos e releitura após reinício com banco temporário.
+  - Concluído: banco padrão em data/arqfor.db, raiz configurável comum e criação do diretório pai antes do pool JDBC. Reinício comprovado fechando contexto Spring/JPA/pool e abrindo novo contexto sobre banco temporário; registros, unicidade, campos opcionais e metadados criptográficos preservados. Não houve migração do banco antigo nem demonstração Docker.
 - [ ] 2.4 Revisar e, com autorização específica, habilitar/testar hook em ambiente descartável conforme README; verificar bloqueio antes de execução e registrar limitações de cobertura.
   - Estrutura já criada; matcher permanece inerte. Habilitação e testes de integração continuam pendentes de autorização específica.
 
@@ -72,6 +72,23 @@ Pendências práticas principais: implementar remoção confirmada somente do re
 - [ ] 7.5 Parar e obter `APROVADO: merge` antes de merge ou entrega da implementação; verificar mensagem explícita e autorização específica para qualquer commit/push/deploy necessário.
 
 ## Registro de aprovações
+
+## Banco e persistência após reinício — task 2.3
+
+Implementado somente o recorte solicitado: application.properties usa jdbc:sqlite:${forenstorage.data-root}/data/arqfor.db e storages sob a mesma raiz configurável (padrão .; usar caminho absoluto para execução de outros diretórios). DataSourceConfiguration cria o diretório pai antes do pool JDBC, preserva propriedades Hikari e overrides, inclusive SQLite em memória. URLs SQLite URI file: são delegadas ao driver sem criação automática do pai. Falha ao criar diretório impede inicialização sem substituir arquivo existente. Não há migração, exclusão ou alteração do antigo forenstorage.db; o novo caminho usa banco próprio.
+
+Testes adequados executados: aplicação completa sem servidor HTTP inicia em raiz temporária, cadastra evidências sintéticas, arquiva pelo fluxo existente, fecha contexto/EntityManagerFactory/pool e inicia novo contexto. Releitura verifica estado, paths, data, hashes persistidos, chave/IV/senha/salt/iterações/versão, bytes cifrados e registro ainda sem cifra. Duplicidade continua bloqueada pelo índice SQLite. Segundo teste verifica falha de inicialização quando data é um arquivo e comprova sua preservação. Nenhum hash recalculado após cadastro. Testes usam somente temporários; serviços de arquivo/cifra não foram alterados.
+
+Primeira execução: 230 testes, uma falha na expectativa da classe da exceção de unicidade. O dialeto encapsula a violação como JpaSystemException; ajustado teste para conferir DataAccessException com causa SQLITE_CONSTRAINT_UNIQUE e quantidade de registros preservada. Reexecução completa:
+
+```bash
+./mvnw '-DargLine=-javaagent:/home/josemberg/.m2/repository/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar' test
+```
+
+BUILD SUCCESS: 230 testes, 0 falhas, 0 erros, 0 ignorados, incluindo os dois novos testes. Reinício de contexto na mesma JVM, não de processo/container; demonstração Docker continua pendente. Persistência entre inicializações normais não garante recuperação de operação interrompida nem atomicidade entre arquivos/SQLite. Limitação acadêmica de chave/IV/senha no banco preservada.
+
+Checklist: configuração alinhada, reinício comprovado, testes executados e documentação atualizada; task 2.3 concluída, 19/26 no total. Proibidas e não realizadas alterações fora do escopo: serviços de negócio, estados, hashes, restauração, interface, dependências, hook, regras Git, migração de dados reais e Docker. Sem commit, push ou merge; aprovação de merge permanece pendente. Encerrado este recorte para revisão.
+
 
 ## Integração web de Desarquivar — recorte concluído
 

@@ -70,3 +70,7 @@ Não há migração, deploy ou rollback a executar agora. Após aprovações: im
 ## Resultado da revisão
 
 Plano e ADRs aprovados pelo usuário em 2026-09-08, incluindo exclusão somente do registro, status controlado pelas ações, path sob fast, derivação de senha, retenção do .dd de trabalho e bloqueio de re-arquivamento do .zip.enc desarquivado. Não há requisito de restauração real implícito nessas decisões. O checkpoint exclusão-fast-storage foi posteriormente aprovado para o fluxo revisado; a orquestração e os testes sintéticos foram concluídos. Merge e checkpoints restantes continuam pendentes, conforme tasks.md.
+
+### Raiz de dados e reinício — task 2.3
+
+Banco padrão em ${forenstorage.data-root}/data/arqfor.db e storages sob a mesma raiz, padrão .; configurar raiz absoluta para execução independente do diretório de trabalho. Diretório pai do banco criado antes da conexão; falha de criação impede inicialização sem sobrescrever arquivo. URL SQLite em memória e overrides existentes preservados. Banco antigo não é migrado automaticamente. Teste fecha contexto Spring/pool/JPA e inicia novo contexto sobre banco e arquivos temporários; não equivale a reinício de processo ou demonstração Docker.
