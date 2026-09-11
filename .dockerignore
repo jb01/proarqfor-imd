@@ -1,0 +1,16 @@
+.git
+.codex
+.agents
+.demo-data
+data
+storage
+target
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.dd
+*.zip
+*.enc

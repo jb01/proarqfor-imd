@@ -1,0 +1,7 @@
+{
+  "path": "/tmp/arqfor-hook-validation/workspace/storage/fast/sentinela.dd",
+  "expected_utf8": "ARQFOR_SENTINELA_SINTETICA\n",
+  "actual_utf8": "ARQFOR_SENTINELA_SINTETICA\n",
+  "exists": true,
+  "unchanged": true
+}

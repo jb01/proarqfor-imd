@@ -1,0 +1,13 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      FORENSTORAGE_DATA_ROOT: /var/lib/arqfor
+      SERVER_PORT: "8080"
+    volumes:
+      - ./demo-data:/var/lib/arqfor
+    restart: "no"

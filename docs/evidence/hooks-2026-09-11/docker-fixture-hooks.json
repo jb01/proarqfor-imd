@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"/tmp/arqfor-docker-validation/workspace/.codex/hooks/bloquear-exclusao-fast.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 -I /tmp/arqfor-docker-validation/workspace/.codex/hooks/observe-input.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

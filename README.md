@@ -78,7 +78,9 @@ Antes de implementar código que exclua arquivo em fast, apresentar fluxo, condi
 
 Antes de merge ou entrega da implementação, apresentar testes realmente executados, mudanças, limitações, riscos e checklist e aguardar `APROVADO: merge`. Commit, push, merge, deploy, Docker e ações destrutivas exigem aprovação humana específica. Nenhuma dessas ações é realizada nesta etapa.
 
-## Guardrail técnico — contrato testado; integração pendente
+## Guardrail técnico — integração de fast comprovada; Docker parcial
+
+**Atualização de 2026-09-11:** a task 2.4 está concluída: sessões nativas recusaram `true` e tentativa de remover sentinela sintética, que permaneceu intacta. Docker também apresentou bloqueios reais sem aprovação, com frase forjada e chamada indireta, mas a task 2.5 continua aberta: o payload do runtime omite `shell`/`login` exigidos pelo verificador, impedindo comprovar liberação legítima. [Relatório e evidências nativas](docs/hook-integration-2026-09-11.md). Testes limitados a cópias descartáveis; os matchers do projeto principal permanecem inertes. As notas abaixo descrevem a preparação e o histórico anteriores à retomada.
 
 Arquivos: [.codex/hooks.json](.codex/hooks.json) e [bloquear-exclusao-fast.sh](.codex/hooks/bloquear-exclusao-fast.sh). O matcher inicial `^ARQFOR_HOOK_DESABILITADO$` não corresponde a ferramentas shell: a estrutura fica inerte até ativação humana. Não usar esse nome como ferramenta. O script não interpreta nem executa o comando recebido; devolve recusa via código 2.
 

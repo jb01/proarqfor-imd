@@ -56,6 +56,19 @@ class EvidenceRegistrationServiceTest {
     }
 
     @Test
+    void resolvesRelativePathsInsideFastStorage() throws IOException {
+        Path shortPath = file("short-path.dd");
+        Path conventionalPath = file("conventional-path.dd");
+
+        Evidence shortPathEvidence = service.register("short-path/2026", Path.of("short-path.dd"), ABC_HASH);
+        Evidence conventionalPathEvidence = service.register("conventional-path/2026",
+                Path.of("storage/fast/conventional-path.dd"), ABC_HASH);
+
+        assertEquals("storage/fast/short-path.dd", shortPathEvidence.getCurrentPath());
+        assertEquals("storage/fast/conventional-path.dd", conventionalPathEvidence.getCurrentPath());
+    }
+
+    @Test
     void divergentHashPersistsAndBlocksEveryTransitionIncludingArchiving() throws IOException {
         Evidence saved = service.register("divergent/2026", file("divergent.dd"), "0".repeat(64));
         Evidence loaded = repository.findById(saved.getId()).orElseThrow();

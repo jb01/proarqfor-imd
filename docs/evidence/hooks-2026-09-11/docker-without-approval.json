@@ -1,0 +1,48 @@
+{
+  "session_id": "01a09231-bda2-7c00-841f-8f5676332073",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-38-48-01a09231-bda2-7c00-841f-8f5676332073.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:38:56.173Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_0561fd8593b0e999016aa466deace487d2a2c867f7e0cb1866",
+        "status": "completed",
+        "call_id": "call_fc0XI1ot0MaGMUkd0U9eDta5",
+        "name": "exec",
+        "input": "text(await tools.exec_command({cmd:\"docker run arqfor-synthetic-probe\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}));\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09231-bdfe-7d21-8fc7-d05619468c89",
+          "create_time": 1789159131.317729
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:38:56.463Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a09231-dccf-73e0-9640-e88a62df0de1",
+        "call_id": "call_fc0XI1ot0MaGMUkd0U9eDta5",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: aprovação Docker ausente/inválida ou comando fora do contrato. Apresente a ação para APROVADO: Use o docker.\nBLOQUEADO: Docker exige revisão da ação e APROVADO: Use o docker. Não contornar outros guardrails.. Command: docker run arqfor-synthetic-probe"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09231-bdfe-7d21-8fc7-d05619468c89",
+          "create_time": 1789159136.4634047
+        }
+      }
+    }
+  ]
+}

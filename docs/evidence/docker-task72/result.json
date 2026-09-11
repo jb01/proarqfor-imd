@@ -1,0 +1,142 @@
+{
+  "checks": [
+    {
+      "name": "banco sintético inicialmente vazio",
+      "passed": true
+    },
+    {
+      "name": "cadastro HTTP TASK72-VALIDA",
+      "passed": true
+    },
+    {
+      "name": "cadastro HTTP TASK72-DIVERGENTE",
+      "passed": true
+    },
+    {
+      "name": "estados iniciais",
+      "passed": true
+    },
+    {
+      "name": "arquivamento confirmado",
+      "passed": true
+    },
+    {
+      "name": "origem sintética removida após cópia",
+      "passed": true
+    },
+    {
+      "name": "arquivamento confirmado",
+      "passed": true
+    },
+    {
+      "name": "origem sintética removida após cópia",
+      "passed": true
+    },
+    {
+      "name": "dd de trabalho preservado",
+      "passed": true
+    },
+    {
+      "name": "ZIP aberto removido",
+      "passed": true
+    },
+    {
+      "name": "artefato cifrado publicado",
+      "passed": true
+    },
+    {
+      "name": "metadados criptográficos presentes",
+      "passed": true
+    },
+    {
+      "name": "arquivamento divergente bloqueado",
+      "passed": true
+    },
+    {
+      "name": "mount externo correto",
+      "passed": true
+    },
+    {
+      "name": "reinício real do mesmo container",
+      "passed": true
+    },
+    {
+      "name": "todos os campos SQLite preservados",
+      "passed": true
+    },
+    {
+      "name": "nomes e bytes de todos os artefatos preservados",
+      "passed": true
+    },
+    {
+      "name": "detalhes após reinício TASK72-VALIDA",
+      "passed": true
+    },
+    {
+      "name": "detalhes após reinício TASK72-DIVERGENTE",
+      "passed": true
+    },
+    {
+      "name": "demonstração concluída",
+      "passed": true
+    }
+  ],
+  "diagnostic": "Primeira inspeção do host não conseguiu atravessar diretório de trabalho privado criado pelo container. Verificação retomada por docker cp, sem repetir cadastro/arquivamento ou mudar permissões.",
+  "before": {
+    "id": "6bf6a7e19034fe709cdc1be395ae37b39543be34abb4140f77dea3b6c31ff0a9",
+    "started_at": "2026-09-11T23:07:38.388205507Z",
+    "mounts": [
+      {
+        "source": "/tmp/arqfor-task72-n16tdmfb/data",
+        "destination": "/var/lib/arqfor",
+        "type": "bind"
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": 1,
+      "evidence_identifier": "TASK72-VALIDA",
+      "status": "ARQUIVADO",
+      "current_path": "/var/lib/arqfor/storage/cold/archive/1/valida.dd.67ddb1c6-9332-4135-80c2-256d98eabc30.zip.enc",
+      "informed_hash": "306bfc40115ebb3b9c3932d76b1b35fa2b9735dfe4aaa9965aadb1b3cf0c09b4",
+      "calculated_hash": "306bfc40115ebb3b9c3932d76b1b35fa2b9735dfe4aaa9965aadb1b3cf0c09b4",
+      "created_at": 1789168271366
+    },
+    {
+      "id": 2,
+      "evidence_identifier": "TASK72-DIVERGENTE",
+      "status": "HASH_DIVERGENTE",
+      "current_path": "/var/lib/arqfor/storage/fast/divergente.dd",
+      "informed_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "calculated_hash": "743411b374761dee86edf27edbc0f2fbf5b8007871fbebe6978a14f298323175",
+      "created_at": 1789168271436
+    }
+  ],
+  "after": {
+    "id": "6bf6a7e19034fe709cdc1be395ae37b39543be34abb4140f77dea3b6c31ff0a9",
+    "started_at": "2026-09-11T23:11:58.094338066Z",
+    "mounts": [
+      {
+        "source": "/tmp/arqfor-task72-n16tdmfb/data",
+        "destination": "/var/lib/arqfor",
+        "type": "bind"
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "fast/divergente.dd",
+      "bytes": 25600
+    },
+    {
+      "path": "cold/archive/1/valida.dd.67ddb1c6-9332-4135-80c2-256d98eabc30.zip.enc",
+      "bytes": 244
+    },
+    {
+      "path": "cold/work/1/copy-15135013172839036701/valida.dd",
+      "bytes": 21504
+    }
+  ],
+  "stopped": true
+}

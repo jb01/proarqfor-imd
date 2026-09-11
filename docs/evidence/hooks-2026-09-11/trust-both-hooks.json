@@ -1,0 +1,160 @@
+[
+  {
+    "method": "initialize",
+    "response": {
+      "id": 1,
+      "result": {
+        "userAgent": "codex_vscode/0.153.4 (Ubuntu 26.4.0; x86_64) dumb (arqfor-hook-validation; 1.0)",
+        "codexHome": "/home/josemberg/.codex",
+        "platformFamily": "unix",
+        "platformOs": "linux"
+      }
+    }
+  },
+  {
+    "method": "config/value/write",
+    "response": {
+      "id": 2,
+      "result": {
+        "status": "ok",
+        "version": "sha256:cee6ab626510122af94c4d491373e5ed19507a878b61fc08b78dc1afc8970294",
+        "filePath": "/home/josemberg/.codex/config.toml",
+        "overriddenMetadata": null
+      }
+    }
+  },
+  {
+    "method": "hooks/list",
+    "response": {
+      "id": 3,
+      "result": {
+        "data": [
+          {
+            "cwd": "/tmp/arqfor-docker-validation/workspace",
+            "hooks": [
+              {
+                "key": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json:pre_tool_use:0:0",
+                "eventName": "preToolUse",
+                "handlerType": "command",
+                "command": "/bin/bash \"/tmp/arqfor-docker-validation/workspace/.codex/hooks/bloquear-exclusao-fast.sh\"",
+                "async": false,
+                "matcher": "^Bash$",
+                "timeoutSec": 5,
+                "statusMessage": null,
+                "additionalContextLimit": null,
+                "sourcePath": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json",
+                "source": "project",
+                "pluginId": null,
+                "displayOrder": 0,
+                "enabled": true,
+                "isManaged": false,
+                "currentHash": "sha256:6b520f006bb2ed09416ab8663af0bd6cbf07aa0a55cbfdc346ddfae9304417c7",
+                "trustStatus": "untrusted"
+              },
+              {
+                "key": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json:pre_tool_use:1:0",
+                "eventName": "preToolUse",
+                "handlerType": "command",
+                "command": "/usr/bin/python3 -I /tmp/arqfor-docker-validation/workspace/.codex/hooks/observe-input.py",
+                "async": false,
+                "matcher": "^Bash$",
+                "timeoutSec": 5,
+                "statusMessage": null,
+                "additionalContextLimit": null,
+                "sourcePath": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json",
+                "source": "project",
+                "pluginId": null,
+                "displayOrder": 1,
+                "enabled": true,
+                "isManaged": false,
+                "currentHash": "sha256:1dcc4462a208e77c51dc12e12ecb71e11b5a7673fddcefb6c0adca9f81a694f0",
+                "trustStatus": "trusted"
+              }
+            ],
+            "warnings": [],
+            "errors": []
+          }
+        ]
+      }
+    }
+  },
+  {
+    "method": "config/value/write",
+    "response": {
+      "id": 4,
+      "result": {
+        "status": "ok",
+        "version": "sha256:1adece2028622fd2afd1a37a42dd7f5800acb00e910582afe7091ea288c0a82b",
+        "filePath": "/home/josemberg/.codex/config.toml",
+        "overriddenMetadata": null
+      }
+    }
+  },
+  {
+    "method": "config/value/write",
+    "response": {
+      "id": 5,
+      "result": {
+        "status": "ok",
+        "version": "sha256:1adece2028622fd2afd1a37a42dd7f5800acb00e910582afe7091ea288c0a82b",
+        "filePath": "/home/josemberg/.codex/config.toml",
+        "overriddenMetadata": null
+      }
+    }
+  },
+  {
+    "method": "hooks/list",
+    "response": {
+      "id": 6,
+      "result": {
+        "data": [
+          {
+            "cwd": "/tmp/arqfor-docker-validation/workspace",
+            "hooks": [
+              {
+                "key": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json:pre_tool_use:0:0",
+                "eventName": "preToolUse",
+                "handlerType": "command",
+                "command": "/bin/bash \"/tmp/arqfor-docker-validation/workspace/.codex/hooks/bloquear-exclusao-fast.sh\"",
+                "async": false,
+                "matcher": "^Bash$",
+                "timeoutSec": 5,
+                "statusMessage": null,
+                "additionalContextLimit": null,
+                "sourcePath": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json",
+                "source": "project",
+                "pluginId": null,
+                "displayOrder": 0,
+                "enabled": true,
+                "isManaged": false,
+                "currentHash": "sha256:6b520f006bb2ed09416ab8663af0bd6cbf07aa0a55cbfdc346ddfae9304417c7",
+                "trustStatus": "trusted"
+              },
+              {
+                "key": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json:pre_tool_use:1:0",
+                "eventName": "preToolUse",
+                "handlerType": "command",
+                "command": "/usr/bin/python3 -I /tmp/arqfor-docker-validation/workspace/.codex/hooks/observe-input.py",
+                "async": false,
+                "matcher": "^Bash$",
+                "timeoutSec": 5,
+                "statusMessage": null,
+                "additionalContextLimit": null,
+                "sourcePath": "/tmp/arqfor-docker-validation/workspace/.codex/hooks.json",
+                "source": "project",
+                "pluginId": null,
+                "displayOrder": 1,
+                "enabled": true,
+                "isManaged": false,
+                "currentHash": "sha256:1dcc4462a208e77c51dc12e12ecb71e11b5a7673fddcefb6c0adca9f81a694f0",
+                "trustStatus": "trusted"
+              }
+            ],
+            "warnings": [],
+            "errors": []
+          }
+        ]
+      }
+    }
+  }
+]

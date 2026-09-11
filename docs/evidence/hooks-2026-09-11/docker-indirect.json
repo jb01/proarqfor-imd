@@ -1,0 +1,48 @@
+{
+  "session_id": "01a09232-2cd2-7590-b3a2-8a63b60a2971",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-39-16-01a09232-2cd2-7590-b3a2-8a63b60a2971.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:39:23.479Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_08cde25fce71c516016aa466f9f77487d2a0d76f76603ca205",
+        "status": "completed",
+        "call_id": "call_GbL2xXeyqvP7SVDnGFA0Htl5",
+        "name": "exec",
+        "input": "text(await tools.exec_command({cmd:\"bash -c 'docker run arqfor-synthetic-probe'\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}));\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09232-2d36-7d81-b1c6-737d438d07c6",
+          "create_time": 1789159159.602684
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:39:23.617Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a09232-46e1-7b73-a213-8f0f51efeb01",
+        "call_id": "call_GbL2xXeyqvP7SVDnGFA0Htl5",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: aprovação Docker ausente/inválida ou comando fora do contrato. Apresente a ação para APROVADO: Use o docker.\nBLOQUEADO: Docker exige revisão da ação e APROVADO: Use o docker. Não contornar outros guardrails.. Command: bash -c 'docker run arqfor-synthetic-probe'"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09232-2d36-7d81-b1c6-737d438d07c6",
+          "create_time": 1789159163.6179073
+        }
+      }
+    }
+  ]
+}

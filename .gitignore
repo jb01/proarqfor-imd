@@ -47,6 +47,7 @@ build/
 # Dados e artefatos locais do projeto
 /storage/
 /data/
+/.demo-data/
 *.db-*
 *.sqlite
 *.sqlite-*

@@ -1,0 +1,48 @@
+{
+  "session_id": "01a0922f-3b92-7611-871e-1a00f73588ed",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-36-04-01a0922f-3b92-7611-871e-1a00f73588ed.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:36:11.520Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_0154b972e2ad56c4016aa4663a685887d292b474105e53ff08",
+        "status": "completed",
+        "call_id": "call_h6lWUvTVWbg5zgclFdADyNTp",
+        "name": "exec",
+        "input": "text(await tools.exec_command({cmd:\"true\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}));\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a0922f-3bef-77c1-a840-6123ef96c903",
+          "create_time": 1789158967.417876
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:36:11.614Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a0922f-58de-7e11-91c5-8bf1d8bf2804",
+        "call_id": "call_h6lWUvTVWbg5zgclFdADyNTp",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: aprovação Docker ausente/inválida ou comando fora do contrato. Apresente a ação para APROVADO: Use o docker.\nBLOQUEADO: Docker exige revisão da ação e APROVADO: Use o docker. Não contornar outros guardrails.. Command: true"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a0922f-3bef-77c1-a840-6123ef96c903",
+          "create_time": 1789158971.6148975
+        }
+      }
+    }
+  ]
+}

@@ -1,5 +1,13 @@
 # Hook Docker — implementação e validação parcial da task 2.5
 
+## Atualização — integração real em 2026-09-11
+
+A interceptação foi comprovada em cópia descartável: Docker sem aprovação, frase forjada e chamada indireta receberam `Command blocked by PreToolUse hook`. Com os dois hooks ativos, fast manteve a recusa. Sentinelas preservadas e substituto Docker não executado. A confiança da fixture e das definições foi registrada pela API nativa; essa pendência anterior foi resolvida.
+
+**A task 2.5 continua aberta por incompatibilidade do contrato:** o runtime envia somente `command` em `tool_input`, omitindo `shell`/`login`; até `true` foi bloqueado. A sessão CLI também produz `exec`/`paginated`, em vez de `vscode`/`legacy`, e seu transcript tem permissão 0664. Os testes negativos param antes de validar a aprovação. Não foi comprovada liberação legítima, nem relaxada a política. [Relatório, payload observado e evidências nativas](hook-integration-2026-09-11.md).
+
+Os 17 testes isolados Docker e 16/16 de fast foram reexecutados com sucesso. Os parágrafos seguintes preservam o histórico anterior; referências à ausência de confiança/interceptação foram superadas pelo resultado acima, não os limites do caminho positivo de aprovação.
+
 ## O que foi implementado
 
 O usuário solicitou executar a task 2.5. Criados `.codex/hooks/bloquear-docker.sh` e `.codex/hooks/bloquear-docker.py`, com entrada própria em `.codex/hooks.json`. A fonte fica com matcher `^ARQFOR_DOCKER_HOOK_DESABILITADO$` até a validação da ativação em cópia descartável. O hook de fast e seu matcher foram preservados.

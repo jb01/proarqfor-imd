@@ -1,0 +1,11 @@
+{
+  "docker_substitute_executed": false,
+  "docker_sentinel_unchanged": true,
+  "copied_scripts_equal_to_project": {
+    "bloquear-docker.sh": true,
+    "bloquear-docker.py": true,
+    "bloquear-exclusao-fast.sh": true
+  },
+  "observed_contract_rejection": "Use shell /bin/bash e login=false para evitar perfis não revisados.",
+  "diagnostic_only": "action_from_event analisou o payload observado sem executar shell, Docker ou o transcript."
+}

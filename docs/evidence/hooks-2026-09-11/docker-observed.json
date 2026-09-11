@@ -1,0 +1,48 @@
+{
+  "session_id": "01a09230-e9bc-78e2-b71f-2ec490f07627",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-37-54-01a09230-e9bc-78e2-b71f-2ec490f07627.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:38:00.290Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_084ea47cd693074b016aa466a7042c87d2bfc45a52675b31dd",
+        "status": "completed",
+        "call_id": "call_sMVTHOADvLxQ8u53aSqcOmGz",
+        "name": "exec",
+        "input": "const result = await tools.exec_command({cmd:\"true\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}); text(result);\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09230-ea18-76e1-aa56-d58ad0020628",
+          "create_time": 1789159077.210178
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:38:00.428Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a09231-01ec-7803-99df-96fb68519d9b",
+        "call_id": "call_sMVTHOADvLxQ8u53aSqcOmGz",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: aprovação Docker ausente/inválida ou comando fora do contrato. Apresente a ação para APROVADO: Use o docker.\nBLOQUEADO: Docker exige revisão da ação e APROVADO: Use o docker. Não contornar outros guardrails.. Command: true"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09230-ea18-76e1-aa56-d58ad0020628",
+          "create_time": 1789159080.428874
+        }
+      }
+    }
+  ]
+}

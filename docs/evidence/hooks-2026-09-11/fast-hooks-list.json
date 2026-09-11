@@ -1,0 +1,39 @@
+{
+  "id": 2,
+  "result": {
+    "data": [
+      {
+        "cwd": "/tmp/arqfor-hook-validation/workspace",
+        "hooks": [
+          {
+            "key": "/tmp/arqfor-hook-validation/workspace/.codex/hooks.json:pre_tool_use:0:0",
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "command": "/bin/bash \"/tmp/arqfor-hook-validation/workspace/.codex/hooks/bloquear-exclusao-fast.sh\"",
+            "async": false,
+            "matcher": "^Bash$",
+            "timeoutSec": 5,
+            "statusMessage": null,
+            "additionalContextLimit": null,
+            "sourcePath": "/tmp/arqfor-hook-validation/workspace/.codex/hooks.json",
+            "source": "project",
+            "pluginId": null,
+            "displayOrder": 0,
+            "enabled": true,
+            "isManaged": false,
+            "currentHash": "sha256:bf9c4a2b14796ebe5407279094100a5da8e72ea4abf80bc9b5c994db9466defe",
+            "trustStatus": "trusted"
+          }
+        ],
+        "warnings": [],
+        "errors": []
+      },
+      {
+        "cwd": "/tmp/arqfor-docker-validation/workspace",
+        "hooks": [],
+        "warnings": [],
+        "errors": []
+      }
+    ]
+  }
+}

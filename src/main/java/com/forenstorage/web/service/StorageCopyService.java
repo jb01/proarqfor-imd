@@ -72,8 +72,9 @@ public class StorageCopyService {
     }
 
     static Path regularUnder(Path path, Path root) throws IOException {
-        rejectSymlinks(path.toAbsolutePath());
-        Path normalized = path.toAbsolutePath().normalize();
+        Path candidate = path.isAbsolute() ? path : resolveLogicalPath(path, root);
+        rejectSymlinks(candidate.toAbsolutePath());
+        Path normalized = candidate.toAbsolutePath().normalize();
         if (!normalized.startsWith(root) || normalized.equals(root)) {
             throw new IllegalArgumentException("Arquivo fora do storage permitido");
         }
@@ -85,6 +86,17 @@ public class StorageCopyService {
             throw new IllegalArgumentException("Arquivo fora do storage permitido");
         }
         return real;
+    }
+
+    private static Path resolveLogicalPath(Path path, Path root) {
+        Path relative = path.normalize();
+        Path conventionalPrefix = Path.of("storage", "fast");
+        if (relative.startsWith(conventionalPrefix)) {
+            relative = relative.getNameCount() == conventionalPrefix.getNameCount()
+                    ? Path.of("")
+                    : relative.subpath(conventionalPrefix.getNameCount(), relative.getNameCount());
+        }
+        return root.resolve(relative).normalize();
     }
 
     static void rejectSymlinks(Path path) {

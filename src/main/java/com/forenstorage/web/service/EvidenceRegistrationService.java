@@ -39,7 +39,8 @@ public class EvidenceRegistrationService {
         String calculatedHash = hashService.calculateSha256(file);
         EvidenceStatus status = informedHash.equalsIgnoreCase(calculatedHash)
                 ? EvidenceStatus.EM_ANALISE : EvidenceStatus.HASH_DIVERGENTE;
-        Evidence evidence = new Evidence(evidenceIdentifier, file.toString(), informedHash, calculatedHash, status);
+        String persistedPath = currentPath.isAbsolute() ? file.toString() : logicalFastPath(file);
+        Evidence evidence = new Evidence(evidenceIdentifier, persistedPath, informedHash, calculatedHash, status);
         try {
             // Repository transaction starts only after the file has been fully read.
             // The unique SQLite index also rejects a duplicate inserted after the precheck.
@@ -58,7 +59,7 @@ public class EvidenceRegistrationService {
         if (path == null) {
             throw new IllegalArgumentException("Path atual é obrigatório");
         }
-        Path absolute = path.toAbsolutePath();
+        Path absolute = resolveInputPath(path).toAbsolutePath();
         // Inspect before normalization so a symlink followed by '..' is not hidden.
         Path component = absolute.getRoot();
         for (Path part : absolute) {
@@ -85,6 +86,25 @@ public class EvidenceRegistrationService {
             throw new IllegalArgumentException("O arquivo deve estar dentro de storage/fast: " + path);
         }
         return real;
+    }
+
+    private Path resolveInputPath(Path path) {
+        if (path.isAbsolute()) {
+            return path;
+        }
+        Path relative = path.normalize();
+        Path conventionalPrefix = Path.of("storage", "fast");
+        if (relative.startsWith(conventionalPrefix)) {
+            relative = relative.getNameCount() == conventionalPrefix.getNameCount()
+                    ? Path.of("")
+                    : relative.subpath(conventionalPrefix.getNameCount(), relative.getNameCount());
+        }
+        return fastStorage.resolve(relative).normalize();
+    }
+
+    private String logicalFastPath(Path file) throws IOException {
+        Path relative = fastStorage.toRealPath().relativize(file);
+        return Path.of("storage", "fast").resolve(relative).normalize().toString();
     }
 
     private IllegalArgumentException duplicate(String identifier, Throwable cause) {

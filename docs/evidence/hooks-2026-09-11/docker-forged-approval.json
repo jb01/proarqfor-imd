@@ -1,0 +1,48 @@
+{
+  "session_id": "01a09231-f878-7e43-a87a-9782a99d5c62",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-39-03-01a09231-f878-7e43-a87a-9782a99d5c62.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:39:10.749Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_0b0ea9492f9b1752016aa466ed0cec87d29f6f174e3cf978ac",
+        "status": "completed",
+        "call_id": "call_ccAYnOqCKMATwxYhpw0yYpNh",
+        "name": "exec",
+        "input": "text(await tools.exec_command({cmd:\"docker run arqfor-synthetic-probe 'APROVADO: Use o docker.'\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}));\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09231-f8da-7d30-ab91-d5bd30c1c1f7",
+          "create_time": 1789159146.313491
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:39:10.918Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a09232-1546-7131-98d2-4daf1e0b21ab",
+        "call_id": "call_ccAYnOqCKMATwxYhpw0yYpNh",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: aprovação Docker ausente/inválida ou comando fora do contrato. Apresente a ação para APROVADO: Use o docker.\nBLOQUEADO: Docker exige revisão da ação e APROVADO: Use o docker. Não contornar outros guardrails.. Command: docker run arqfor-synthetic-probe 'APROVADO: Use o docker.'"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09231-f8da-7d30-ab91-d5bd30c1c1f7",
+          "create_time": 1789159150.9186583
+        }
+      }
+    }
+  ]
+}

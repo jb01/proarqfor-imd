@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "name": "banco sintético inicialmente vazio",
+      "passed": true
+    },
+    {
+      "name": "cadastro HTTP TASK72-VALIDA",
+      "passed": true
+    },
+    {
+      "name": "cadastro HTTP TASK72-DIVERGENTE",
+      "passed": true
+    },
+    {
+      "name": "estados iniciais",
+      "passed": true
+    },
+    {
+      "name": "arquivamento confirmado",
+      "passed": true
+    },
+    {
+      "name": "origem sintética removida após cópia",
+      "passed": true
+    },
+    {
+      "name": "dd de trabalho preservado",
+      "passed": false
+    }
+  ]
+}

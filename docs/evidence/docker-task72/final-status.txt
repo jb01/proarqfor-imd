@@ -1,0 +1,2 @@
+NAME                       IMAGE                      COMMAND                  SERVICE   CREATED         STATUS                        PORTS
+arqfor-task72-demo-web-1   arqfor-task72-demo:local   "java -jar /app/app.…"   web       4 minutes ago   Exited (143) 15 seconds ago   

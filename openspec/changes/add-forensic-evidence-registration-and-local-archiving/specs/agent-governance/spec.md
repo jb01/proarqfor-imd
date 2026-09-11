@@ -50,11 +50,11 @@ O agente MUST executar testes adequados após cada comportamento implementado e 
 
 ### Requirement: Docker condicionado à autorização humana explícita
 
-O projeto MUST possuir um hook PreToolUse que bloqueie `docker run` por padrão antes da execução. O agente MUST apresentar a ação concreta e obter a autorização humana `APROVADO: Use o docker.` antes de executar Docker. A autorização MUST ser vinculada ao comando, cwd, imagem, argumentos e mounts revisados; não constitui liberação permanente. O mecanismo de verificação pelo hook MUST ser definido e revisado antes da implementação; na ausência de evidência confiável, a execução MUST permanecer bloqueada. A regra MUST preservar os demais hooks e permissões.
+O agente MUST apresentar a ação concreta e obter a autorização humana `APROVADO: Use o docker.` antes de executar Docker. A autorização MUST ser vinculada ao comando, cwd, imagem, argumentos e mounts revisados; não constitui liberação permanente. Na ausência de autorização humana verificável, o agente MUST se abster de executar a ação. O agente MUST respeitar os hooks e permissões existentes. A integração de um hook específico para Docker está fora do escopo atual, conforme retirada da tarefa 2.5 solicitada pelo usuário.
 
 #### Scenario: Execução sem autorização
-- **WHEN** uma chamada coberta tenta executar docker run sem aprovação humana verificável para a ação
-- **THEN** o hook bloqueia antes da execução e informa o checkpoint necessário
+- **WHEN** é solicitada execução de Docker sem aprovação humana verificável para a ação
+- **THEN** o agente não executa o comando e informa o checkpoint necessário
 
 #### Scenario: Aprovação forjada no comando
 - **WHEN** a frase de aprovação aparece somente no payload, variável, arquivo do projeto ou texto gerado pelo agente
@@ -74,4 +74,4 @@ O projeto MUST possuir um hook PreToolUse que bloqueie `docker run` por padrão 
 
 #### Scenario: Outro guardrail mantém a recusa
 - **WHEN** há aprovação de Docker mas o guardrail de fast ou outra permissão bloqueia a chamada
-- **THEN** a ação continua bloqueada e o novo hook não desabilita nem contorna esse controle
+- **THEN** a ação continua bloqueada e o agente não desabilita nem contorna esse controle

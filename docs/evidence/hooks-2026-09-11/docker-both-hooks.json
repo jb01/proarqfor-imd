@@ -1,0 +1,48 @@
+{
+  "session_id": "01a09232-8bcf-77b1-8c9c-bb19e5235aab",
+  "source": "/home/josemberg/.codex/sessions/2026/09/11/rollout-2026-09-11T17-39-41-01a09232-8bcf-77b1-8c9c-bb19e5235aab.jsonl",
+  "extraction": "Somente chamadas de ferramenta e resultados nativos; sem prompts, credenciais ou demais mensagens.",
+  "events": [
+    {
+      "timestamp": "2026-09-11T20:39:48.649Z",
+      "ordinal": 12,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call",
+        "id": "ctc_0d0d181f685ba450016aa467139c9087d2ad093ce301e060cc",
+        "status": "completed",
+        "call_id": "call_mWTdgI9692lCGQ5c9H3caWOy",
+        "name": "exec",
+        "input": "text(await tools.exec_command({cmd:\"docker run arqfor-synthetic-probe\",shell:\"/bin/bash\",login:false,workdir:\"/tmp/arqfor-docker-validation/workspace\"}));\n",
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09232-8c2b-7ee2-a931-8e5e2f19464d",
+          "create_time": 1789159185.254933
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-11T20:39:48.785Z",
+      "ordinal": 14,
+      "type": "response_item",
+      "payload": {
+        "type": "custom_tool_call_output",
+        "id": "ctco_01a09232-a931-7da2-a081-c0fc2264dba8",
+        "call_id": "call_mWTdgI9692lCGQ5c9H3caWOy",
+        "output": [
+          {
+            "type": "input_text",
+            "text": "Script failed\nWall time 0.1 seconds\nOutput:\n"
+          },
+          {
+            "type": "input_text",
+            "text": "Script error:\nCommand blocked by PreToolUse hook: BLOQUEADO: shell desabilitado pelo guardrail de storage/fast. Revisão humana obrigatória; não contornar o hook.. Command: docker run arqfor-synthetic-probe"
+          }
+        ],
+        "internal_chat_message_metadata_passthrough": {
+          "turn_id": "01a09232-8c2b-7ee2-a931-8e5e2f19464d",
+          "create_time": 1789159188.7853844
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "services": {
+    "web": {
+      "build": {
+        "context": "/home/josemberg/Documentos/MESTRADO/DEV-ia/proarqfor-imd",
+        "dockerfile": "Dockerfile"
+      },
+      "image": "arqfor-task72-demo:local",
+      "ports": [
+        "127.0.0.1:18080:8080"
+      ],
+      "environment": {
+        "FORENSTORAGE_DATA_ROOT": "/var/lib/arqfor",
+        "SERVER_PORT": "8080"
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "/tmp/arqfor-task72-n16tdmfb/data",
+          "target": "/var/lib/arqfor"
+        }
+      ],
+      "restart": "no"
+    }
+  }
+}
